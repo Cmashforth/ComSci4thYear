@@ -11,6 +11,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.lang.StringBuilder;
 import java.util.HashMap;
+import java.util.Iterator;
 
 public class test {
 
@@ -20,13 +21,14 @@ public class test {
 		String line = " ";
 		String csvSplitBy = ",";
 		HashMap<Integer,Cluster> clusterMap = new HashMap<Integer,Cluster>();
+		HashMap<String,Entity> entityMap = new HashMap<String,Entity>();
 		Long maxTime = 0L;
 		Long minTime = 3000000000000000000L;
 		String output = "";
 		BufferedWriter bw = null;
 		FileWriter fw = null;
 		
-
+		System.out.println("Creating Entity and Cluster Objects");
 		try {
             br = new BufferedReader(new FileReader(args[0]));
             while ((line = br.readLine()) != null) {
@@ -47,6 +49,14 @@ public class test {
 				Cluster currentCluster = clusterMap.get(tweetInsert.getClusterID());
 				currentCluster.add_tweet(tweetInsert);
 				clusterMap.put(tweetInsert.getClusterID(), currentCluster);
+				
+				if(entityMap.containsKey(tweetInsert.getClusterName()) == false) {
+					entityMap.put(tweetInsert.getClusterName(), new Entity(tweetInsert.getClusterName()));
+				}
+				Entity currentEntity = entityMap.get(tweetInsert.getClusterName());
+				currentEntity.addTweet(tweetInsert);
+				entityMap.put(tweetInsert.getClusterName(), currentEntity);
+				
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -62,32 +72,38 @@ public class test {
             }
         }
 		
-		System.out.println("Sigma Creation");
+		System.out.println("Entity and Cluster Objects created");
+		
+		System.out.println("Cluster Centroid Calculation");
 		for(int i = 1; i < clusterMap.size(); i++) {
 			Cluster currentCluster = clusterMap.get(i);
-			ArrayList<Tweet> clusterTweetLst = currentCluster.getTweets();
-			if(clusterTweetLst.size() > 10) {
-				Long startTime = minTime;
-				Long endTime = minTime + 3600000L;
-				while(startTime < maxTime){
-					TimeUnit currentUnit = new TimeUnit(startTime,endTime);
-					for(int j = 0; j < clusterTweetLst.size(); j ++){
-						if(clusterTweetLst.get(j).getTimestamp() > startTime) {
-							if(clusterTweetLst.get(j).getTimestamp() < endTime) {
-								currentUnit.addTweet(clusterTweetLst.get(j));
-							}
-						}
-					}
-					currentCluster.add_timeUnit(currentUnit);
-					startTime = startTime + 3600000L;
-					endTime = endTime + 3600000L;
-				}
-				currentCluster.setSigma();
-			} 
+			currentCluster.setCentroid();
 		}
 		
+		System.out.println("Centroids Calculated");
+		System.out.println("Calculate Sigmas");
+		
+		for(String key : entityMap.keySet()) {
+			Entity currentEntity = entityMap.get(key);
+			currentEntity.calculateSigma(minTime, maxTime, 300000L);
+			currentEntity.calculateSigma(minTime, maxTime, 600000L);
+			currentEntity.calculateSigma(minTime, maxTime, 1200000L);
+			currentEntity.calculateSigma(minTime, maxTime, 2400000L);
+			currentEntity.calculateSigma(minTime, maxTime, 4800000L);
+			currentEntity.calculateSigma(minTime, maxTime, 9600000L);
+			currentEntity.calculateSigma(minTime, maxTime, 21600000L);
+			entityMap.put(key, currentEntity);
+		}
+		
+		System.out.println("Sigmas Calculated");
 		
 		
+		
+		
+		
+		
+		
+		/*
 		System.out.println("Output Generation");
 		for(int i = 1; i< clusterMap.size(); i++) {
 			Cluster currentCluster = clusterMap.get(i);
@@ -126,6 +142,7 @@ public class test {
 			}
 		}
 		
-		
+	*/	
     }	
+    
 }

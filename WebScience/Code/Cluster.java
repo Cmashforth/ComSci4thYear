@@ -6,7 +6,7 @@ public class Cluster{
 	private String cluster_name;
 	private int size;
 	private ArrayList<Tweet> tweet_list;
-	private double sigma;
+	private Long centroid;
 	private ArrayList<TimeUnit> time_units;
 	
 	
@@ -14,8 +14,7 @@ public class Cluster{
 		cluster_name = cn;
 		size = 0;
 		tweet_list = new ArrayList<Tweet>();
-		sigma = 0;
-		time_units = new ArrayList<TimeUnit>();
+		centroid = 0L;
 	}
 	
 	public String getName() {
@@ -39,30 +38,18 @@ public class Cluster{
 		return tweet_list;
 	}
 	
-	public void setSigma(){
-		double mean = 0;
-		double sd = 0;
-	
-		for(int i = 0; i < time_units.size(); i++) {
-			mean = mean + time_units.get(i).getSize();
+	public void setCentroid() {
+		Long sumTime = 0L;
+		for(int i = 0; i < tweet_list.size(); i++) {
+			sumTime = sumTime + tweet_list.get(i).getTimestamp();
 		}
-		mean = mean/time_units.size();
-		
-		for(int j = 0; j < time_units.size(); j++) {
-			double sum = Math.pow(time_units.get(j).getSize()- mean,2);
-			sd =  sd + sum;
-		}
-		sd = Math.sqrt(sd/(time_units.size() - 1));
-		this.sigma = Math.ceil(mean+(3*sd));
+		this.centroid = sumTime/tweet_list.size();
 	}
 	
-	public double getSigma() {
-		return sigma;
+	public Long getCentroid() {
+		return centroid;
 	}
 	
-	public ArrayList<TimeUnit> getTimeUnits(){
-		return time_units;
-	}
 	
 	public String tweetListToString() {
 		String output = "";
