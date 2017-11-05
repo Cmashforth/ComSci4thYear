@@ -1,0 +1,1 @@
+INDEX VERSION 1.130+C:\Users\Chris\code\ComSci4thYear\WebScience\1day\.metadata\.plugins\org.eclipse.jdt.core
