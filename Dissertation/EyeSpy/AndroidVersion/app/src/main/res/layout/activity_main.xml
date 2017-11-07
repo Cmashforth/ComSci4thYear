@@ -5,6 +5,14 @@
     android:layout_height="match_parent"
     tools:context="com.example.chris.eyespy.MainActivity">
 
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:text = "You are not logged In"
+        android:textAlignment="center"
+        android:textSize="20dp"
+        android:id= '@+id/LogInMessage'/>
+
     <ImageView
         android:layout_width="match_parent"
         android:layout_height="450dp"
@@ -20,6 +28,13 @@
             android:layout_centerHorizontal="true"
             android:text="Camera"
             android:onClick="takePicture"/>
+
+        <Button android:id="@+id/LogInButton"
+                android:layout_height="48dp"
+                android:layout_width= "wrap_content"
+                android:layout_centerHorizontal="true"
+                android:layout_above="@+id/button_image"
+                android:text= "Log In"/>
 
         <Button
             android:id="@+id/GPS_Page"

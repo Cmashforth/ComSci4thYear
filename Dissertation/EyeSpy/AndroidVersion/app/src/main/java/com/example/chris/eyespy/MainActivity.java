@@ -9,6 +9,10 @@ import android.provider.MediaStore;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -17,6 +21,9 @@ public class MainActivity extends AppCompatActivity {
     private ImageView mImageView;
     private Button camButton;
     private Button changeGPS;
+    private TextView logInMessage;
+    private Button logInButton;
+    private FirebaseAuth mAuth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,6 +33,27 @@ public class MainActivity extends AppCompatActivity {
         mImageView = (ImageView) findViewById(R.id.imageView);
         camButton = (Button) findViewById(R.id.button_image);
         changeGPS = (Button) findViewById(R.id.GPS_Page);
+        logInMessage = (TextView) findViewById(R.id.LogInMessage);
+        logInButton = (Button) findViewById(R.id.LogInButton);
+
+        mAuth = FirebaseAuth.getInstance();
+    }
+
+    @Override
+    public void onStart(){
+        super.onStart();
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+
+    }
+
+    private void updateUI(FirebaseUser user){
+        if(user != null){
+            logInMessage.setText("You are logged in, well done!!!");
+            logInButton.setVisibility(View.INVISIBLE);
+        }
+        else{
+
+        }
     }
 
     public void takePicture(View view) {
