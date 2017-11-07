@@ -43,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
     public void onStart(){
         super.onStart();
         FirebaseUser currentUser = mAuth.getCurrentUser();
-
+        updateUI(currentUser);
     }
 
     private void updateUI(FirebaseUser user){
@@ -71,6 +71,11 @@ public class MainActivity extends AppCompatActivity {
 
     public void changePageWifi(View view){
         Intent changePageIntent = new Intent(this,WifiActivity.class);
+        startActivity(changePageIntent);
+    }
+
+    public void changeLogIn(View view){
+        Intent changePageIntent = new Intent(this,LogInActivity.class);
         startActivity(changePageIntent);
     }
 

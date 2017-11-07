@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.example.chris.eyespy.LogInPopUp">
+
+    <TextView
+        android:layout_height="50dp"
+        android:layout_width="match_parent"
+        android:text="Log In/Sign Up"
+        android:textSize="40dp"
+        android:layout_marginLeft="10dp"
+        android:id="@+id/LoginText"
+        />
+
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_below="@id/LoginText"
+        android:inputType="text"
+        android:text= "Enter Email"
+        android:layout_marginLeft="10dp"
+        android:id="@+id/Email"/>
+
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_below="@id/Email"
+        android:inputType="text"
+        android:text= "Enter Password"
+        android:layout_marginLeft="10dp"
+        android:id="@+id/Password"/>
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_below="@id/Password"
+        android:text="Login"
+        android:id="@+id/LogInButton"
+        android:onClick="onClick"/>
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_below="@id/LogInButton"
+        android:text="Sign Up"
+        android:id="@+id/SignUpButton"
+        android:onClick="onClick"/>
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_below="@id/SignUpButton"
+        android:text="Verify Email"
+        android:id="@+id/VerifyEmailButton"
+        android:onClick="onClick"/>
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_below="@id/VerifyEmailButton"
+        android:text="Close"
+        android:id="@+id/CloseButton"
+        android:onClick="onClick"/>
+
+
+
+
+</RelativeLayout>
