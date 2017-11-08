@@ -52,6 +52,7 @@ public class test {
 				
 				if(entityMap.containsKey(tweetInsert.getClusterName()) == false) {
 					entityMap.put(tweetInsert.getClusterName(), new Entity(tweetInsert.getClusterName()));
+					
 				}
 				Entity currentEntity = entityMap.get(tweetInsert.getClusterName());
 				currentEntity.addTweet(tweetInsert);
@@ -74,6 +75,8 @@ public class test {
 		
 		System.out.println("Entity and Cluster Objects created");
 		
+		
+		
 		System.out.println("Cluster Centroid Calculation");
 		for(int i = 1; i < clusterMap.size(); i++) {
 			Cluster currentCluster = clusterMap.get(i);
@@ -85,16 +88,20 @@ public class test {
 		
 		for(String key : entityMap.keySet()) {
 			Entity currentEntity = entityMap.get(key);
-			currentEntity.calculateSigma(minTime, maxTime, 300000L);
-			currentEntity.calculateSigma(minTime, maxTime, 600000L);
-			currentEntity.calculateSigma(minTime, maxTime, 1200000L);
-			currentEntity.calculateSigma(minTime, maxTime, 2400000L);
-			currentEntity.calculateSigma(minTime, maxTime, 4800000L);
-			currentEntity.calculateSigma(minTime, maxTime, 9600000L);
-			currentEntity.calculateSigma(minTime, maxTime, 21600000L);
+			System.out.println(currentEntity.getName());
+			if(currentEntity.getTweets().size() > 10) {
+				currentEntity.calculateSigma(minTime, maxTime, 300000L);
+				currentEntity.calculateSigma(minTime, maxTime, 600000L);
+				currentEntity.calculateSigma(minTime, maxTime, 1200000L);
+				currentEntity.calculateSigma(minTime, maxTime, 2400000L);
+				currentEntity.calculateSigma(minTime, maxTime, 4800000L);
+				currentEntity.calculateSigma(minTime, maxTime, 9600000L);
+				currentEntity.calculateSigma(minTime, maxTime, 21600000L);
+			} else {
+				currentEntity.setSigmaMap();	
+			}
 			entityMap.put(key, currentEntity);
 		}
-		
 		System.out.println("Sigmas Calculated");
 		
 		

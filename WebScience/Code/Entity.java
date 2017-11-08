@@ -15,6 +15,18 @@ public class Entity {
 		this.sigmaMap = new HashMap<Long,Double>();
 	}
 	
+	public String getName() {
+		return name;
+	}
+	
+	public ArrayList<Tweet> getTweets(){
+		return tweet_list;
+	}
+	
+	public void setSigmaMap(){
+		this.sigmaMap = null;
+	}
+	
 	public void addTweet(Tweet newTweet) {
 		tweet_list.add(newTweet);
 		size = size + 1;
@@ -38,9 +50,12 @@ public class Entity {
 			stepEnd = stepEnd + timeStep;
 		}
 		
-		int sum = 0;
+		
+		
+		double sum = 0.0;
 		for(int j = 0; j < stepAmounts.size(); j++) {
 			sum = sum + stepAmounts.get(j);
+			
 		}
 		
 		double mean = sum/stepAmounts.size();
