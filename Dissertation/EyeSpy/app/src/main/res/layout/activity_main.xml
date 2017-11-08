@@ -37,6 +37,15 @@
                 android:text= "Log In"
                 android:onClick="changeLogIn"/>
 
+        <Button android:id="@+id/SignOutButton"
+            android:layout_height="48dp"
+            android:layout_width= "wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_above="@+id/button_image"
+            android:text= "SignOut"
+            android:visibility="invisible"
+            android:onClick="signUserOut"/>
+
         <Button
             android:id="@+id/GPS_Page"
             android:layout_width="wrap_content"

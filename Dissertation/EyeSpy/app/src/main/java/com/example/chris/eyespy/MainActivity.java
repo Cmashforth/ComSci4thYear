@@ -24,6 +24,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView logInMessage;
     private Button logInButton;
     private FirebaseAuth mAuth;
+    private Button signOutButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
         changeGPS = (Button) findViewById(R.id.GPS_Page);
         logInMessage = (TextView) findViewById(R.id.LogInMessage);
         logInButton = (Button) findViewById(R.id.LogInButton);
+        signOutButton = (Button) findViewById(R.id.SignOutButton);
 
         mAuth = FirebaseAuth.getInstance();
     }
@@ -50,9 +52,12 @@ public class MainActivity extends AppCompatActivity {
         if(user != null){
             logInMessage.setText("You are logged in, well done!!!");
             logInButton.setVisibility(View.INVISIBLE);
+            signOutButton.setVisibility(View.VISIBLE);
         }
         else{
-
+            logInMessage.setText("You are not Logged In");
+            signOutButton.setVisibility(View.INVISIBLE);
+            logInButton.setVisibility(View.VISIBLE);
         }
     }
 
@@ -77,6 +82,11 @@ public class MainActivity extends AppCompatActivity {
     public void changeLogIn(View view){
         Intent changePageIntent = new Intent(this,LogInActivity.class);
         startActivity(changePageIntent);
+    }
+
+    public void signUserOut(View view){
+        mAuth.signOut();
+        updateUI(null);
     }
 
     @Override
