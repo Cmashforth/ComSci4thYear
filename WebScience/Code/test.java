@@ -16,6 +16,8 @@ import java.util.Iterator;
 public class test {
 
     public static void main(String[] args) {
+    	
+    	long startTime = System.currentTimeMillis();
 		
     	BufferedReader br = null;
 		String line = " ";
@@ -24,6 +26,8 @@ public class test {
 		HashMap<String,Entity> entityMap = new HashMap<String,Entity>();
 		ArrayList<Tweet> allTweets = new ArrayList<Tweet>();
 		ArrayList<Tweet> outputTweets = new ArrayList<Tweet>();
+		ArrayList<Window> outputWindows = new ArrayList<Window>();
+		ArrayList<Tweet> checkOutput = new ArrayList<Tweet>();
 		Long maxTime = 0L;
 		Long minTime = 3000000000000000000L;
 		String output = "";
@@ -36,6 +40,15 @@ public class test {
             while ((line = br.readLine()) != null) {
 				String[] row = line.split(csvSplitBy);
 				Tweet tweetInsert = new Tweet(Integer.parseInt(row[0]),row[1],Long.parseLong(row[2]),Long.parseLong(row[3]),Integer.parseInt(row[4]),row[5],row[6]);
+				
+				if(tweetInsert.getTimestamp() < minTime) {
+					minTime = tweetInsert.getTimestamp();
+				}
+				
+				if(tweetInsert.getTimestamp() > maxTime) {
+					maxTime = tweetInsert.getTimestamp();
+				}
+				
 				allTweets.add(tweetInsert);
 				
 				if(clusterMap.containsKey(tweetInsert.getClusterID()) == false) {
@@ -68,8 +81,6 @@ public class test {
             }
         }
 		
-		minTime = allTweets.get(0).getTimestamp();
-		maxTime = allTweets.get(allTweets.size() - 1).getTimestamp();
 		System.out.println("Entity and Cluster Objects created");
 		
 		
@@ -98,35 +109,67 @@ public class test {
 		
 		System.out.println("Start Burst Detection");
 		while(allTweets.size() != 0) {
-			Long step = 300000L;
+			long step = 21600000L;
 			Tweet currentTweet = allTweets.remove(0);
+			allTweets.trimToSize();
 			HashMap<Long, Double> entitySigmas = entityMap.get(currentTweet.getClusterName()).getSigmaMap();
-			while(step <= 21600000L) {
-				if(entitySigmas.get(step) > 1.0) {
-					ArrayList<Tweet> possTweets = countTweets(step,allTweets,currentTweet,clusterMap);
-					if(possTweets.size() - 1 >= entitySigmas.get(step)) {
-						for(int i = 0; i < possTweets.size(); i++) {
-							Tweet possTweet = possTweets.get(i);
-							if(outputTweets.contains(possTweet) == false) {
-								outputTweets.add(possTweet);
-							}
-						}
-					}
+			boolean burst = false;
+			while(step >= 300000L && burst == false) {
+				ArrayList<Tweet> possTweets = new ArrayList<Tweet>();
+				possTweets.add(currentTweet);
+				Long endPoint = currentTweet.getTimestamp() + step;
+				if(endPoint > maxTime) {
+					endPoint = maxTime;
 				}
-				if(step != 9600000L) {
-					step = step * 2;
+				int j = 0;
+				Window newWindow = new Window();
+				newWindow.addTweet(currentTweet);
+				while(j < allTweets.size() && allTweets.get(j).getTimestamp() <= endPoint) {
+					if(allTweets.get(j).getClusterName().equals(currentTweet.getClusterName())) {
+						newWindow.addTweet(allTweets.get(j));
+					}
+					j = j + 1;
+				}
+				if(newWindow.getSize() >= 10 && newWindow.getSize() >= entitySigmas.get(step)) {
+					outputWindows.add(newWindow);
+					burst = true;
+				}
+				if(step == 21600000L) {
+					step = 9600000L;
 				} else {
-					step = 21600000L;
+					step = step/2;
+				}
+			}
+			
+		}
+		System.out.println("Finish Burst Detection");
+		System.out.println("Start Cluster Selection");
+		
+		for(int i = 0; i < outputWindows.size(); i++) {
+			outputWindows.get(i).organiseClusters();
+			HashMap<Integer,Cluster> windowClusters = outputWindows.get(i).getWindowClusters();
+			for(Integer clusterKey : windowClusters.keySet()) {
+				Cluster currentCluster = windowClusters.get(clusterKey);
+				if(currentCluster.getSize() > 10) {
+					Cluster masterCluster = clusterMap.get(clusterKey);
+					if(masterCluster.getCentroid() > outputWindows.get(i).getFirstTweet().getTimestamp()) {
+						outputTweets.addAll(currentCluster.getTweets());
+					}
 				}
 			}
 		}
-		allTweets.trimToSize();
 		
-		System.out.println("Finish Burst Detection");
+		System.out.println("Ended Cluster Selection");
+		
 		System.out.println("Create Output String");
 		
 		for(int i = 0; i< outputTweets.size(); i++) {
-			output = output + outputTweets.get(i).toString();
+			if(checkOutput.contains(outputTweets.get(i)) == false) {
+				output = output + outputTweets.get(i).toString();
+				checkOutput.add(outputTweets.get(i));
+			}
+			
+			
 		}
 		
 		System.out.println("Output Generated");
@@ -151,25 +194,14 @@ public class test {
 				ex.printStackTrace();
 			}
 		}
+		
+		Long endTime = System.currentTimeMillis();
+		System.out.println(endTime-startTime);
 			
     }	
     
     
-    private static ArrayList<Tweet> countTweets(Long step, ArrayList<Tweet> tweetList, Tweet currentTweet, HashMap<Integer, Cluster> clusterMap){
-    	ArrayList<Tweet> possTweets = new ArrayList<Tweet>();
-    	possTweets.add(currentTweet);
-    	Long endTime = currentTweet.getTimestamp() + step;
-    	String tweetEntity = currentTweet.getClusterName();
-    	
-    	for(int  i = 0; i < tweetList.size() && tweetList.get(i).getTimestamp() < endTime; i++) {
-    		if(tweetList.get(i).getClusterName().equals(tweetEntity)) {
-    			if(clusterMap.get(tweetList.get(i).getClusterID()).getCentroid() > endTime - step && clusterMap.get(tweetList.get(i).getClusterID()).getSize() > 10 ) {
-    			 possTweets.add(tweetList.get(i));
-    			}
-    		}
-    	}
-    	return possTweets;
-    	
-    }
+ 
+    
     
 }

@@ -7,6 +7,7 @@ public class Tweet{
 	private int userID;
 	private String tokens;
 	private String text;
+	private Boolean output;
 	
 	public Tweet(int ci, String cn, Long ti, Long ts, int ui, String tok, String txt){
 		clusterID = ci;
@@ -16,6 +17,7 @@ public class Tweet{
 		userID = ui;
 		tokens = tok;
 		text = txt;
+		output = false;
 	}
 	
 	public int getClusterID(){
@@ -44,6 +46,14 @@ public class Tweet{
 	
 	public String getText() {
 		return text;
+	}
+	
+	public void output() {
+		this.output = true;
+	}
+	
+	public boolean getOutput() {
+		return this.output;
 	}
 	
 	public String toString(){

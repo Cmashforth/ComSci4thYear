@@ -7,7 +7,7 @@ public class Cluster{
 	private int size;
 	private ArrayList<Tweet> tweet_list;
 	private Long centroid;
-	private ArrayList<TimeUnit> time_units;
+
 	
 	
 	public Cluster(String cn){
@@ -24,10 +24,6 @@ public class Cluster{
 	public void add_tweet(Tweet tweet){
 		tweet_list.add(tweet);
 		size = size + 1;
-	}
-	
-	public void add_timeUnit(TimeUnit timeUnit) {
-		time_units.add(timeUnit);
 	}
 	
 	public int getSize(){
