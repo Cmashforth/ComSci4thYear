@@ -85,17 +85,13 @@ public class test {
 		
 		for(String key : entityMap.keySet()) {
 			Entity currentEntity = entityMap.get(key);
-			if(currentEntity.getTweets().size() > 10) {
-				currentEntity.calculateSigma(minTime, maxTime, 300000L);
-				currentEntity.calculateSigma(minTime, maxTime, 600000L);
-				currentEntity.calculateSigma(minTime, maxTime, 1200000L);
-				currentEntity.calculateSigma(minTime, maxTime, 2400000L);
-				currentEntity.calculateSigma(minTime, maxTime, 4800000L);
-				currentEntity.calculateSigma(minTime, maxTime, 9600000L);
-				currentEntity.calculateSigma(minTime, maxTime, 21600000L);
-			} else {
-				currentEntity.setSigmaMap();	
-			}
+			currentEntity.calculateSigma(minTime, maxTime, 300000L);
+			currentEntity.calculateSigma(minTime, maxTime, 600000L);
+			currentEntity.calculateSigma(minTime, maxTime, 1200000L);
+			currentEntity.calculateSigma(minTime, maxTime, 2400000L);
+			currentEntity.calculateSigma(minTime, maxTime, 4800000L);
+			currentEntity.calculateSigma(minTime, maxTime, 9600000L);
+			currentEntity.calculateSigma(minTime, maxTime, 21600000L);
 			entityMap.put(key, currentEntity);
 		}
 		System.out.println("Sigmas Calculated");
@@ -105,9 +101,8 @@ public class test {
 			Long step = 300000L;
 			Tweet currentTweet = allTweets.remove(0);
 			HashMap<Long, Double> entitySigmas = entityMap.get(currentTweet.getClusterName()).getSigmaMap();
-			if(entitySigmas != null) {
-				while(step <= 21600000L) {
-					if(entitySigmas.get(step) > 1.0) {
+			while(step <= 21600000L) {
+				if(entitySigmas.get(step) > 1.0) {
 					ArrayList<Tweet> possTweets = countTweets(step,allTweets,currentTweet,clusterMap);
 					if(possTweets.size() - 1 >= entitySigmas.get(step)) {
 						for(int i = 0; i < possTweets.size(); i++) {
@@ -117,16 +112,15 @@ public class test {
 							}
 						}
 					}
-					}
-					if(step != 9600000L) {
-						step = step * 2;
-					} else {
-						step = 21600000L;
-					}
+				}
+				if(step != 9600000L) {
+					step = step * 2;
+				} else {
+					step = 21600000L;
 				}
 			}
-			allTweets.trimToSize();
 		}
+		allTweets.trimToSize();
 		
 		System.out.println("Finish Burst Detection");
 		System.out.println("Create Output String");
@@ -169,7 +163,7 @@ public class test {
     	
     	for(int  i = 0; i < tweetList.size() && tweetList.get(i).getTimestamp() < endTime; i++) {
     		if(tweetList.get(i).getClusterName().equals(tweetEntity)) {
-    			if(clusterMap.get(tweetList.get(i).getClusterID()).getCentroid() > endTime - step) {
+    			if(clusterMap.get(tweetList.get(i).getClusterID()).getCentroid() > endTime - step && clusterMap.get(tweetList.get(i).getClusterID()).getSize() > 10 ) {
     			 possTweets.add(tweetList.get(i));
     			}
     		}
