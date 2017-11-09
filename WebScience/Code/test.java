@@ -22,6 +22,8 @@ public class test {
 		String csvSplitBy = ",";
 		HashMap<Integer,Cluster> clusterMap = new HashMap<Integer,Cluster>();
 		HashMap<String,Entity> entityMap = new HashMap<String,Entity>();
+		ArrayList<Tweet> allTweets = new ArrayList<Tweet>();
+		ArrayList<Tweet> outputTweets = new ArrayList<Tweet>();
 		Long maxTime = 0L;
 		Long minTime = 3000000000000000000L;
 		String output = "";
@@ -34,14 +36,7 @@ public class test {
             while ((line = br.readLine()) != null) {
 				String[] row = line.split(csvSplitBy);
 				Tweet tweetInsert = new Tweet(Integer.parseInt(row[0]),row[1],Long.parseLong(row[2]),Long.parseLong(row[3]),Integer.parseInt(row[4]),row[5],row[6]);
-				
-				if(tweetInsert.getTimestamp() > maxTime) {
-					maxTime = tweetInsert.getTimestamp();
-				}
-				
-				if(tweetInsert.getTimestamp() < minTime) {
-					minTime = tweetInsert.getTimestamp();
-				}
+				allTweets.add(tweetInsert);
 				
 				if(clusterMap.containsKey(tweetInsert.getClusterID()) == false) {
 					clusterMap.put(tweetInsert.getClusterID(),new Cluster(tweetInsert.getClusterName()));
@@ -73,6 +68,8 @@ public class test {
             }
         }
 		
+		minTime = allTweets.get(0).getTimestamp();
+		maxTime = allTweets.get(allTweets.size() - 1).getTimestamp();
 		System.out.println("Entity and Cluster Objects created");
 		
 		
@@ -88,7 +85,6 @@ public class test {
 		
 		for(String key : entityMap.keySet()) {
 			Entity currentEntity = entityMap.get(key);
-			System.out.println(currentEntity.getName());
 			if(currentEntity.getTweets().size() > 10) {
 				currentEntity.calculateSigma(minTime, maxTime, 300000L);
 				currentEntity.calculateSigma(minTime, maxTime, 600000L);
@@ -104,29 +100,42 @@ public class test {
 		}
 		System.out.println("Sigmas Calculated");
 		
-		
-		
-		
-		
-		
-		
-		/*
-		System.out.println("Output Generation");
-		for(int i = 1; i< clusterMap.size(); i++) {
-			Cluster currentCluster = clusterMap.get(i);
-			if(currentCluster.getSigma() != 0) {
-				ArrayList<TimeUnit> clusterTimeUnits = currentCluster.getTimeUnits();
-				for(int j = 0; j < clusterTimeUnits.size(); j++) {
-					TimeUnit timeSpan = clusterTimeUnits.get(j);
-					if(timeSpan.getSize() >= currentCluster.getSigma()) {
-						ArrayList<Tweet> outputTweets = timeSpan.getTweetList();
-						for(int k = 0; k < outputTweets.size(); k++) {
-							output = output + outputTweets.get(k).toString();
+		System.out.println("Start Burst Detection");
+		while(allTweets.size() != 0) {
+			Long step = 300000L;
+			Tweet currentTweet = allTweets.remove(0);
+			HashMap<Long, Double> entitySigmas = entityMap.get(currentTweet.getClusterName()).getSigmaMap();
+			if(entitySigmas != null) {
+				while(step <= 21600000L) {
+					if(entitySigmas.get(step) > 1.0) {
+					ArrayList<Tweet> possTweets = countTweets(step,allTweets,currentTweet,clusterMap);
+					if(possTweets.size() - 1 >= entitySigmas.get(step)) {
+						for(int i = 0; i < possTweets.size(); i++) {
+							Tweet possTweet = possTweets.get(i);
+							if(outputTweets.contains(possTweet) == false) {
+								outputTweets.add(possTweet);
+							}
 						}
 					}
-				}	
+					}
+					if(step != 9600000L) {
+						step = step * 2;
+					} else {
+						step = 21600000L;
+					}
+				}
 			}
+			allTweets.trimToSize();
 		}
+		
+		System.out.println("Finish Burst Detection");
+		System.out.println("Create Output String");
+		
+		for(int i = 0; i< outputTweets.size(); i++) {
+			output = output + outputTweets.get(i).toString();
+		}
+		
+		System.out.println("Output Generated");
 		
 		try {
 			fw = new FileWriter("Output.csv");
@@ -148,8 +157,25 @@ public class test {
 				ex.printStackTrace();
 			}
 		}
-		
-	*/	
+			
     }	
+    
+    
+    private static ArrayList<Tweet> countTweets(Long step, ArrayList<Tweet> tweetList, Tweet currentTweet, HashMap<Integer, Cluster> clusterMap){
+    	ArrayList<Tweet> possTweets = new ArrayList<Tweet>();
+    	possTweets.add(currentTweet);
+    	Long endTime = currentTweet.getTimestamp() + step;
+    	String tweetEntity = currentTweet.getClusterName();
+    	
+    	for(int  i = 0; i < tweetList.size() && tweetList.get(i).getTimestamp() < endTime; i++) {
+    		if(tweetList.get(i).getClusterName().equals(tweetEntity)) {
+    			if(clusterMap.get(tweetList.get(i).getClusterID()).getCentroid() > endTime - step) {
+    			 possTweets.add(tweetList.get(i));
+    			}
+    		}
+    	}
+    	return possTweets;
+    	
+    }
     
 }

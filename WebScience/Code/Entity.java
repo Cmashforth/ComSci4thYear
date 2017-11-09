@@ -27,6 +27,10 @@ public class Entity {
 		this.sigmaMap = null;
 	}
 	
+	public HashMap<Long,Double> getSigmaMap(){
+		return this.sigmaMap;
+	}
+	
 	public void addTweet(Tweet newTweet) {
 		tweet_list.add(newTweet);
 		size = size + 1;
@@ -66,7 +70,6 @@ public class Entity {
 		}
 		double sd = Math.sqrt(sumSq/(stepAmounts.size() - 1));
 		double sigma = Math.ceil(mean + (3*sd));
-		System.out.println(sigma);
-		sigmaMap.put((timeStep/60000), sigma);
+		sigmaMap.put(timeStep, sigma);
 	}
 }
