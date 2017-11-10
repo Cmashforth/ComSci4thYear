@@ -5,13 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.File;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.lang.StringBuilder;
 import java.util.HashMap;
-import java.util.Iterator;
 
 public class test {
 
@@ -19,6 +14,7 @@ public class test {
     	
     	long startTime = System.currentTimeMillis();
 		
+    	//Creates several instances that will be used throughout the program
     	BufferedReader br = null;
 		String line = " ";
 		String csvSplitBy = ",";
@@ -35,12 +31,17 @@ public class test {
 		FileWriter fw = null;
 		
 		System.out.println("Creating Entity and Cluster Objects");
+		
+		//Tries to read in the file specified in the command line by line 
 		try {
             br = new BufferedReader(new FileReader(args[0]));
             while ((line = br.readLine()) != null) {
-				String[] row = line.split(csvSplitBy);
-				Tweet tweetInsert = new Tweet(Integer.parseInt(row[0]),row[1],Long.parseLong(row[2]),Long.parseLong(row[3]),Integer.parseInt(row[4]),row[5],row[6]);
 				
+            	//Splits the line by commas and creates a new Tweet object to
+            	String[] row = line.split(csvSplitBy);
+				Tweet tweetInsert = new Tweet(Integer.parseInt(row[0]),row[1],Long.parseLong(row[2]),Long.parseLong(row[3]),Integer.parseInt(row[4]),row[5],line);
+				
+				//Checks if the current Tweet is newer or older than the current max/min timestamp, then adds tweet to the ArrayList of all Tweets
 				if(tweetInsert.getTimestamp() < minTime) {
 					minTime = tweetInsert.getTimestamp();
 				}
@@ -51,6 +52,9 @@ public class test {
 				
 				allTweets.add(tweetInsert);
 				
+				
+				//Adds the tweet to a cluster and creates the cluster if it does not already exist 
+				//The cluster is then added to the Map of Clusters when it is updated/created
 				if(clusterMap.containsKey(tweetInsert.getClusterID()) == false) {
 					clusterMap.put(tweetInsert.getClusterID(),new Cluster(tweetInsert.getClusterName()));
 				}
@@ -58,6 +62,7 @@ public class test {
 				currentCluster.add_tweet(tweetInsert);
 				clusterMap.put(tweetInsert.getClusterID(), currentCluster);
 				
+				//Does similar to before but adds tweets to Entity Objects instead of Cluster Objects
 				if(entityMap.containsKey(tweetInsert.getClusterName()) == false) {
 					entityMap.put(tweetInsert.getClusterName(), new Entity(tweetInsert.getClusterName()));
 					
@@ -67,7 +72,7 @@ public class test {
 				entityMap.put(tweetInsert.getClusterName(), currentEntity);
 				
             }
-        } catch (FileNotFoundException e) {
+        } catch (FileNotFoundException e) { //Exceptions for reading in the file
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
@@ -82,10 +87,9 @@ public class test {
         }
 		
 		System.out.println("Entity and Cluster Objects created");
-		
-		
-		
 		System.out.println("Cluster Centroid Calculation");
+		
+		//Runs through each cluster and calculates the centroid time for all the tweets in that cluster
 		for(int i = 1; i < clusterMap.size(); i++) {
 			Cluster currentCluster = clusterMap.get(i);
 			currentCluster.setCentroid();
@@ -94,6 +98,8 @@ public class test {
 		System.out.println("Centroids Calculated");
 		System.out.println("Calculate Sigmas");
 		
+		//Cycles through the Entitys and calculates the 3-sigma values for each window size
+		//5,10,20,40,80,160,360 minutes and re-enters the Entity into the Entity Map
 		for(String key : entityMap.keySet()) {
 			Entity currentEntity = entityMap.get(key);
 			currentEntity.calculateSigma(minTime, maxTime, 300000L);
@@ -105,25 +111,43 @@ public class test {
 			currentEntity.calculateSigma(minTime, maxTime, 21600000L);
 			entityMap.put(key, currentEntity);
 		}
-		System.out.println("Sigmas Calculated");
 		
+		System.out.println("Sigmas Calculated");
 		System.out.println("Start Burst Detection");
+		
+		//Cycles through all tweets and detects if a burst has occurred for a window size
+		//that starts at the time of the tweet
 		while(allTweets.size() != 0) {
-			long step = 21600000L;
+			//Starting with the largest window size, the tweet is removed from the allTweets 
+			//(size of allTweets is adjusted), the Sigmas for the entity are retrieved and
+			//bursting is set to false
+			long step = 21600000L; 
 			Tweet currentTweet = allTweets.remove(0);
 			allTweets.trimToSize();
 			HashMap<Long, Double> entitySigmas = entityMap.get(currentTweet.getClusterName()).getSigmaMap();
 			boolean burst = false;
+			
+			//Iterates through the windows sizes, reducing each time unless the window has been 
+			//indicated as bursting
 			while(step >= 300000L && burst == false) {
+				//A List of possible tweets that may be outputted is created, first tweet is
+				//automatically added
 				ArrayList<Tweet> possTweets = new ArrayList<Tweet>();
 				possTweets.add(currentTweet);
 				Long endPoint = currentTweet.getTimestamp() + step;
+				
+				//If the Window End Point is greater than the maximum Tweet Time then the end point is 
+				//set to the maximum Tweet Time
 				if(endPoint > maxTime) {
 					endPoint = maxTime;
 				}
+				
+				//A new window is created and the current tweet is added to it
 				int j = 0;
 				Window newWindow = new Window();
 				newWindow.addTweet(currentTweet);
+				
+				//
 				while(j < allTweets.size() && allTweets.get(j).getTimestamp() <= endPoint) {
 					if(allTweets.get(j).getClusterName().equals(currentTweet.getClusterName())) {
 						newWindow.addTweet(allTweets.get(j));
@@ -163,14 +187,13 @@ public class test {
 		
 		System.out.println("Create Output String");
 		
-		for(int i = 0; i< outputTweets.size(); i++) {
+		for(int i = 0; i < outputTweets.size(); i++) {
 			if(checkOutput.contains(outputTweets.get(i)) == false) {
-				output = output + outputTweets.get(i).toString();
+				output = output + outputTweets.get(i).getText() + '\n';
 				checkOutput.add(outputTweets.get(i));
 			}
-			
-			
 		}
+		
 		
 		System.out.println("Output Generated");
 		

@@ -6,7 +6,7 @@ public class Tweet{
 	private Long timestamp;
 	private int userID;
 	private String tokens;
-	private String text;
+	private String line;
 	private Boolean output;
 	
 	public Tweet(int ci, String cn, Long ti, Long ts, int ui, String tok, String txt){
@@ -16,7 +16,7 @@ public class Tweet{
 		timestamp = ts;
 		userID = ui;
 		tokens = tok;
-		text = txt;
+		line = txt;
 		output = false;
 	}
 	
@@ -45,7 +45,7 @@ public class Tweet{
 	}
 	
 	public String getText() {
-		return text;
+		return line;
 	}
 	
 	public void output() {
