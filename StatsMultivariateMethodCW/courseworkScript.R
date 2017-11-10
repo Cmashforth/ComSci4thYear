@@ -1,4 +1,5 @@
 rm(list=ls())
+load("C:/Users/Chris/code/ComSci4thYear/StatsMultivariateMethodCW/MM2017Project.RData")
 
 data = HTRU.1
 
@@ -23,7 +24,37 @@ test.label = labels[ind3]
 save(train.data,train.label,valid.data,valid.label,test.data,test.label, file = "data.txt")
 
 ########Data is saved, must be read in from now on##################
-fit.model = lm(train.label ~ .,data = train.data)
-pred.class = predict(fit.model,valid.data)
-ifelse(pred.class >= 0.5, pred.class <- 1, pred.class <- 0)
-corr.class.rate <- sum(test.label == pred.class)/ nrow(test.data)
+
+######Regression########
+res.lm = lm(train.label~.,data=train.data)
+pred.train = ifelse(res.lm$fitted.values <= 0.5,0,1)
+table(train.label,pred.train)
+correct.class.train = sum(diag(table(train.label,pred.train)))/nrow(train.data)
+
+res.valid = merge(valid.data,test.data, all = TRUE)
+res.labels = c(valid.label,test.label)
+
+n.valid = nrow(res.valid)
+yhat.valid = cbind(rep(1,n.valid),data.matrix(res.valid)) %*% res.lm$coefficients
+yhat.valid = predict(res.lm,res.valid)
+pres.valid = ifelse(yhat.valid<= 0.5,0,1)
+table(res.labels,pres.valid)
+
+correct.class.valid = sum(diag(table(res.labels,pres.valid)))/nrow(res.valid)
+
+######Knn############
+library(class)
+corr.class.rate = rep(NA,20)
+for(k in 1:20){
+  pred = knn(train.data,valid.data,train.label,k=k)
+  corr.class.rate[k] = sum(pred == valid.label)/nrow(valid.data)
+  
+}
+
+plot(1:20,corr.class.rate, type = "l", xlab = "k")
+max(corr.class.rate)
+best.k = which.max(corr.class.rate)
+pred = knn(train.data,test.data,train.label, k = best.k)
+sum(pred == test.label)/nrow(test.data)
+
+#####
