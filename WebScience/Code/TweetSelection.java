@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class test {
+public class TweetSelection {
 
     public static void main(String[] args) {
     	
