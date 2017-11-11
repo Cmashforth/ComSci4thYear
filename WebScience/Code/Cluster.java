@@ -1,61 +1,49 @@
 import java.util.ArrayList;
-import java.lang.Math;
 
+
+//Class for a Cluster of Tweets
 public class Cluster{
 	
+	//Instances for the name of a cluster, a list of tweets and the centroid time of all tweets
 	private String cluster_name;
-	private int size;
 	private ArrayList<Tweet> tweet_list;
 	private Long centroid;
 
-	
-	
+	//Constructor for a Cluster
 	public Cluster(String cn){
-		cluster_name = cn;
-		size = 0;
-		tweet_list = new ArrayList<Tweet>();
-		centroid = 0L;
+		this.cluster_name = cn;
+		this.tweet_list = new ArrayList<Tweet>();
+		this.centroid = 0L;
 	}
 	
+	//Getters for several instances
 	public String getName() {
-		return cluster_name;
-	}
-	
-	public void add_tweet(Tweet tweet){
-		tweet_list.add(tweet);
-		size = size + 1;
+		return this.cluster_name;
 	}
 	
 	public int getSize(){
-		return size;
+		return this.tweet_list.size();
 	}
 	
 	public ArrayList<Tweet> getTweets(){
-		return tweet_list;
-	}
-	
-	public void setCentroid() {
-		Long sumTime = 0L;
-		for(int i = 0; i < tweet_list.size(); i++) {
-			sumTime = sumTime + tweet_list.get(i).getTimestamp();
-		}
-		this.centroid = sumTime/tweet_list.size();
+		return this.tweet_list;
 	}
 	
 	public Long getCentroid() {
 		return centroid;
 	}
 	
-	
-	public String tweetListToString() {
-		String output = "";
-		Tweet currentTweet = null;
-		
-		for(int i = 0; i < tweet_list.size(); i++) {
-			currentTweet = tweet_list.get(i);
-			output = output + currentTweet.toString();
-		}
-		return output;
+	//Adds a tweet to the tweetList
+	public void add_tweet(Tweet tweet){
+		this.tweet_list.add(tweet);
 	}
 	
+	//Calculates the mean Timestamp of all the tweets in the cluster
+	public void setCentroid() {
+		Long sumTime = 0L;
+		for(int i = 0; i < this.tweet_list.size(); i++) {
+			sumTime = sumTime + this.tweet_list.get(i).getTimestamp();
+		}
+		this.centroid = sumTime/this.tweet_list.size();
+	}
 }
