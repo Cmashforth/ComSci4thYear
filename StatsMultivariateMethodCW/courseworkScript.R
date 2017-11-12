@@ -57,4 +57,72 @@ best.k = which.max(corr.class.rate)
 pred = knn(train.data,test.data,train.label, k = best.k)
 sum(pred == test.label)/nrow(test.data)
 
-#####
+#####CVA###############
+library(MASS)
+train.lda = lda(train.data,train.label,prior = c(0.5,0.5))
+plot(train.lda)
+
+valid.lda = predict(train.lda,newdata = valid.data)
+names(valid.lda)
+
+xtab = table(valid.label,valid.lda$class)
+xtab
+
+1 - sum(diag(xtab))/sum(xtab)
+
+test.lda = predict(train.lda,newdata = test.data)
+xtab = table(test.label,test.lda$class)
+1 - sum(diag(xtab))/sum(xtab)
+
+#######LDA################
+train.lda = lda(train.data,train.label)
+plot(train.lda)
+
+valid.lda = predict(train.lda,valid.data)
+xtab = table(valid.label,valid.lda$class)
+xtab
+
+valid.lda$posterior[valid.label != valid.lda$class,]
+1 - sum(diag(xtab))/sum(xtab)
+
+test.lda = predict(train.lda,test.data)
+xtab = table(test.label,test.lda$class)
+xtab
+1 - sum(diag(xtab))/sum(xtab)
+
+##########QDA#################
+train.qda = qda(train.data,train.label)
+
+valid.qda = predict(train.qda,valid.data)
+
+xtab = table(valid.label,valid.qda$class)
+xtab
+
+1 - sum(diag(xtab))/sum(xtab)
+
+test.qda = predict(train.qda,test.data)
+
+xtab = table(test.label,test.qda$class)
+xtab
+1 - sum(diag(xtab))/sum(xtab)
+
+
+#########Trees#############
+set.seed(126)
+library(rpart)
+train.tree = cbind(train.label,train.data)
+valid.tree = cbind(valid.label,valid.data)
+
+
+train.rp = rpart(train.label~., data = train.tree, method = "class")
+
+train.rp
+plot(train.rp)
+text(train.rp)
+plotcp(train.rp)
+
+valid.rp = predict(train.rp,valid.tree, type = "class")
+xtab = table(valid.label,valid.rp)
+xtab
+1 - sum(diag(xtab))/sum(xtab)
+
