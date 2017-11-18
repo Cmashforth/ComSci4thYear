@@ -12,8 +12,6 @@ public class TweetSelection {
 
     public static void main(String[] args) {
     	
-    	long startTime = System.currentTimeMillis();
-		
     	//Creates several instances that will be used throughout the program
     	//Instances for reading in the file
     	BufferedReader br = null;
@@ -220,7 +218,6 @@ public class TweetSelection {
 			}
 		}
 		
-		
 		System.out.println("Output Generated");
 		
 		//The program finally tries to write the output string to a file called Output.csv
@@ -244,9 +241,6 @@ public class TweetSelection {
 				ex.printStackTrace();
 			}
 		}
-		
-		Long endTime = System.currentTimeMillis();
-		System.out.println(endTime-startTime);
 			
     }	
     
