@@ -35,7 +35,6 @@ corr.class.rate = sum(valid.label == pred.class)/nrow(valid.data)
 
 table(pred.class, valid.label)
 
-
 ######Knn############
 library(class)
 corr.class.rate = rep(NA,50)
