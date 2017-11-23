@@ -5,20 +5,15 @@
     android:layout_height="match_parent"
     tools:context="com.example.chris.eyespy.MainActivity">
 
+
+
     <TextView
         android:layout_width="match_parent"
         android:layout_height="40dp"
         android:text = "You are not logged In"
         android:textAlignment="center"
         android:textSize="20dp"
-        android:id= '@+id/LogInMessage'/>
-
-    <ImageView
-        android:layout_width="match_parent"
-        android:layout_height="450dp"
-        android:src="@mipmap/ic_launcher"
-        android:id="@+id/imageView"
-        />
+        android:id= "@+id/LogInMessage"/>
 
         <Button
             android:id="@+id/button_image"
@@ -27,7 +22,7 @@
             android:layout_alignParentBottom ="true"
             android:layout_centerHorizontal="true"
             android:text="Camera"
-            android:onClick="takePicture"/>
+            android:onClick="onClick"/>
 
         <Button android:id="@+id/LogInButton"
                 android:layout_height="48dp"
@@ -35,7 +30,7 @@
                 android:layout_centerHorizontal="true"
                 android:layout_above="@+id/button_image"
                 android:text= "Log In"
-                android:onClick="changeLogIn"/>
+                android:onClick="onClick"/>
 
         <Button android:id="@+id/SignOutButton"
             android:layout_height="48dp"
@@ -44,7 +39,7 @@
             android:layout_above="@+id/button_image"
             android:text= "SignOut"
             android:visibility="invisible"
-            android:onClick="signUserOut"/>
+            android:onClick="onClick"/>
 
         <Button
             android:id="@+id/GPS_Page"
@@ -52,14 +47,15 @@
             android:layout_height="48dp"
             android:layout_alignParentBottom ="true"
             android:text="GPS Page"
-            android:onClick="changePage"/>
+            android:onClick="onClick"/>
 
         <Button
+            android:id="@+id/Wifi"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
             android:layout_alignParentBottom="true"
             android:layout_alignParentRight="true"
             android:text="Wifi"
-            android:onClick="changePageWifi"/>
+            android:onClick="onClick"/>
 
 </RelativeLayout>
