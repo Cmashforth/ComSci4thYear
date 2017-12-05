@@ -1,27 +1,18 @@
 package com.example.chris.eyespy;
 
 
-import android.*;
 import android.Manifest;
-import android.app.ProgressDialog;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.icu.text.SimpleDateFormat;
-import android.media.Image;
 import android.net.Uri;
-import android.nfc.Tag;
 import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.content.Intent;
 import android.provider.MediaStore;
-import android.util.Base64;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -30,25 +21,27 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
 
-import java.io.ByteArrayOutputStream;
+
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
+
 import java.util.Date;
 
-import static android.os.Environment.DIRECTORY_PICTURES;
+
 
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
@@ -62,11 +55,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private FirebaseAuth mAuth;
     private Button signOutButton;
     private String mCurrentPhotoPath;
-    private FirebaseDatabase db;
+    private DatabaseReference db;
     private DatabaseReference myRef;
     private String pictureImagePath;
     private Button wifiButton;
     private StorageReference myStor;
+    private ProgressBar progressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,11 +73,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         logInButton = (Button) findViewById(R.id.LogInButton);
         signOutButton = (Button) findViewById(R.id.SignOutButton);
         wifiButton = (Button)findViewById(R.id.Wifi);
+        progressBar = (ProgressBar) findViewById(R.id.uploadProgress);
 
         mAuth = FirebaseAuth.getInstance();
-        db = FirebaseDatabase.getInstance();
-        myRef = db.getReference();
-        myStor = FirebaseStorage.getInstance().getReference();
+        db = FirebaseDatabase.getInstance().getReference();
+        myStor = FirebaseStorage.getInstance().getReference("uploads");
 
     }
 
@@ -181,25 +175,39 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if(requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK){
             Uri imageUri = Uri.parse(mCurrentPhotoPath);
 
-
             StorageReference uploadRef = myStor.child("images/"+imageUri.getLastPathSegment());
             UploadTask uploadTask = uploadRef.putFile(imageUri);
             uploadTask.addOnFailureListener(new OnFailureListener() {
+
+
                 @Override
                 public void onFailure(@NonNull Exception e) {
                     Toast.makeText(MainActivity.this,"Failed",Toast.LENGTH_SHORT).show();
                 }
+            }).addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
+                @Override
+                public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
+                    double progress = (100.0 * taskSnapshot.getBytesTransferred())/taskSnapshot.getTotalByteCount();
+                    System.out.println("Upload is " + progress + "% done");
+                    progressBar.setProgress((int) progress);
+
+                }
+            }).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
+                @Override
+                public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
+                    Toast.makeText(MainActivity.this,"Upload Finished",Toast.LENGTH_SHORT).show();
+                    progressBar.setProgress(0);
+                }
+            }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                @Override
+                public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                    Uri newUri = taskSnapshot.getDownloadUrl();
+                    Upload newUpload = new Upload(newUri.toString());
+                    db.child("uploadImages").setValue(newUri.toString());
+                }
             });
-
         }
-    }
 
-    private String createString(Bitmap myBitmap){
-        ByteArrayOutputStream boas = new ByteArrayOutputStream();
-        myBitmap.compress(Bitmap.CompressFormat.JPEG,100,boas);
-        byte[] b = boas.toByteArray();
-        String output = Base64.encodeToString(b,Base64.DEFAULT);
-        return output;
     }
 
     private void changePage(){

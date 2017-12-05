@@ -11,10 +11,6 @@ public class Upload {
 
     public String value;
 
-    public Upload(){
-
-    }
-
     public Upload(String value){
         this.value = value;
     }

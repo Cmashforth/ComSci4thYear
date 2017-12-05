@@ -4,7 +4,7 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.example.chris.eyespy.LogInPopUp">
+    tools:context="com.example.chris.eyespy.LogInActivity">
 
     <TextView
         android:layout_height="50dp"
@@ -20,7 +20,7 @@
         android:layout_height="50dp"
         android:layout_below="@id/LoginText"
         android:inputType="text"
-        android:text= "Enter Email"
+        android:hint="Enter Email"
         android:layout_marginLeft="10dp"
         android:id="@+id/Email"/>
 
@@ -29,7 +29,7 @@
         android:layout_height="50dp"
         android:layout_below="@id/Email"
         android:inputType="text"
-        android:text= "Enter Password"
+        android:hint= "Enter Password"
         android:layout_marginLeft="10dp"
         android:id="@+id/Password"/>
 
@@ -53,14 +53,6 @@
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:layout_below="@id/SignUpButton"
-        android:text="Verify Email"
-        android:id="@+id/VerifyEmailButton"
-        android:onClick="onClick"/>
-
-    <Button
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:layout_below="@id/VerifyEmailButton"
         android:text="Close"
         android:id="@+id/CloseButton"
         android:onClick="onClick"/>

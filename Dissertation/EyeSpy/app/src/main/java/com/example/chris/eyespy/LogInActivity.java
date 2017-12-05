@@ -1,6 +1,6 @@
 package com.example.chris.eyespy;
 
-import android.app.ProgressDialog;
+
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -27,7 +27,6 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
     private EditText passwordField;
     private Button loginButton;
     private Button signupButton;
-    private Button verifyEmail;
     private Button closeButton;
     private FirebaseAuth mAuth;
 
@@ -41,14 +40,11 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
         passwordField = (EditText) findViewById(R.id.Password);
         loginButton = (Button) findViewById(R.id.LogInButton);
         signupButton = (Button) findViewById(R.id.SignUpButton);
-        verifyEmail = (Button) findViewById(R.id.VerifyEmailButton);
         closeButton = (Button) findViewById(R.id.CloseButton);
 
         mAuth = FirebaseAuth.getInstance();
 
     }
-
-
 
     private void createAccount(String email,String password){
         if(!validateForm()){
@@ -61,9 +57,10 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if(task.isSuccessful()){
                             FirebaseUser user = mAuth.getCurrentUser();
+                            onClick(closeButton);
                         }else{
                             Log.w(TAG, "createUserWithEmail:failure", task.getException());
-                            Toast.makeText(LogInActivity.this, "Failed Login", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(LogInActivity.this, "Failed Sign Up", Toast.LENGTH_SHORT).show();
                         }
 
                     }
@@ -83,26 +80,7 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
                             FirebaseUser user = mAuth.getCurrentUser();
                         }else{
                             Log.w(TAG, "signInWithEmail:failure", task.getException());
-                            Toast.makeText(LogInActivity.this, "Failed Sign Up",Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                });
-    }
-
-    private void sendEmailVerification(){
-        verifyEmail.setEnabled(false);
-
-        final FirebaseUser user = mAuth.getCurrentUser();
-        user.sendEmailVerification()
-                .addOnCompleteListener(this, new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-                        verifyEmail.setEnabled(false);
-
-                        if(task.isSuccessful()){
-                            Toast.makeText(LogInActivity.this, "Email sent to " + user.getEmail(), Toast.LENGTH_SHORT).show();
-                        } else{
-                            Toast.makeText(LogInActivity.this, "Failed to send Email", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(LogInActivity.this, "Failed Log In",Toast.LENGTH_SHORT).show();
                         }
                     }
                 });
@@ -139,9 +117,6 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
         }
         else if(i == R.id.LogInButton){
             signIn(emailField.getText().toString(),passwordField.getText().toString());
-        }
-        else if(i == R.id.VerifyEmailButton){
-            sendEmailVerification();
         }
         else if(i == R.id.CloseButton){
             Intent changePageIntent = new Intent(this,MainActivity.class);
