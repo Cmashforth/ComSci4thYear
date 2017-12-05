@@ -21,14 +21,19 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
+import com.bumptech.glide.Glide;
+import com.firebase.ui.storage.images.FirebaseImageLoader;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
@@ -52,14 +57,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button changeGPS;
     private TextView logInMessage;
     private Button logInButton;
+    private Button getImageButton;
     private FirebaseAuth mAuth;
     private Button signOutButton;
     private String mCurrentPhotoPath;
     private DatabaseReference db;
-    private DatabaseReference myRef;
-    private String pictureImagePath;
     private Button wifiButton;
     private StorageReference myStor;
+    private FirebaseStorage storInst;
     private ProgressBar progressBar;
 
     @Override
@@ -74,10 +79,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         signOutButton = (Button) findViewById(R.id.SignOutButton);
         wifiButton = (Button)findViewById(R.id.Wifi);
         progressBar = (ProgressBar) findViewById(R.id.uploadProgress);
+        getImageButton =(Button) findViewById(R.id.getImage);
+        mImageView = (ImageView) findViewById(R.id.image);
 
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseDatabase.getInstance().getReference();
         myStor = FirebaseStorage.getInstance().getReference("uploads");
+        storInst = FirebaseStorage.getInstance();
 
     }
 
@@ -98,19 +106,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Toast.makeText(MainActivity.this, "onClick Toast",Toast.LENGTH_SHORT).show();
                 return;
             }
-        }
-        else if(view == changeGPS){
+        } else if(view == changeGPS){
             changePage();
-        }
-        else if(view == logInButton){
+        } else if(view == logInButton){
             changeLogIn();
-        }
-        else if(view == signOutButton){
+        } else if(view == signOutButton){
             signUserOut();
-        }
-        else if(view == wifiButton){
+        } else if(view == wifiButton){
             changePageWifi();
+        } else if(view == getImageButton){
+            getImage();
         }
+
     }
 
     private void updateUI(FirebaseUser user){
@@ -208,6 +215,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             });
         }
 
+    }
+
+    private void getImage(){
+        db.child("uploadImages").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                String url = dataSnapshot.getValue(String.class);
+                StorageReference httpsReference = storInst.getReferenceFromUrl(url);
+                Glide.with(MainActivity.this)
+                        .using(new FirebaseImageLoader())
+                        .load(httpsReference)
+                        .into(mImageView);
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
     }
 
     private void changePage(){
