@@ -3,6 +3,7 @@ package com.example.chris.eyespy;
 
 import android.*;
 import android.Manifest;
+import android.app.ProgressDialog;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -24,15 +25,19 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 
 
 import java.io.ByteArrayOutputStream;
@@ -61,6 +66,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private DatabaseReference myRef;
     private String pictureImagePath;
     private Button wifiButton;
+    private StorageReference myStor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,6 +83,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseDatabase.getInstance();
         myRef = db.getReference();
+        myStor = FirebaseStorage.getInstance().getReference();
 
     }
 
@@ -139,12 +146,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return image;
         }catch(IOException ex){
             ex.printStackTrace();
-           Toast.makeText(MainActivity.this, "Temp Toast",Toast.LENGTH_SHORT).show();
+            Toast.makeText(MainActivity.this, "Temp Toast",Toast.LENGTH_SHORT).show();
             return null;
         }
 
     }
-
 
     private void takePicture() throws IOException {
         if(ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
@@ -174,17 +180,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onActivityResult(requestCode,resultCode,data);
         if(requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK){
             Uri imageUri = Uri.parse(mCurrentPhotoPath);
-            File file = new File(imageUri.getPath());
-            try{
-                InputStream ims = new FileInputStream(file);
-                Bitmap myBitmap = BitmapFactory.decodeStream(ims);
-                String uploadString = createString(myBitmap);
-                Upload upload = new Upload(uploadString);
-                myRef.child("uploads").setValue(upload);
-            } catch(FileNotFoundException e){
-                Toast.makeText(MainActivity.this, "Activity Toast",Toast.LENGTH_SHORT).show();
-                return;
-            }
+
+
+            StorageReference uploadRef = myStor.child("images/"+imageUri.getLastPathSegment());
+            UploadTask uploadTask = uploadRef.putFile(imageUri);
+            uploadTask.addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
+                    Toast.makeText(MainActivity.this,"Failed",Toast.LENGTH_SHORT).show();
+                }
+            });
+
         }
     }
 
