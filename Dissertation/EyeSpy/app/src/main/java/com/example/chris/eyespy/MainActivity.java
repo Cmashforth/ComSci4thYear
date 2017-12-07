@@ -67,6 +67,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private FirebaseStorage storInst;
     private ProgressBar progressBar;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -209,8 +210,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 @Override
                 public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
                     Uri newUri = taskSnapshot.getDownloadUrl();
-                    Upload newUpload = new Upload(newUri.toString());
-                    db.child("uploadImages").setValue(newUri.toString());
+                    final Upload newUpload = new Upload(newUri.toString());
+                    manageUpload(newUpload);
                 }
             });
         }
@@ -228,6 +229,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         .load(httpsReference)
                         .into(mImageView);
 
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+    }
+
+    private void manageUpload(final Upload upload){
+        db.child("maxImageIndex").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                int maxIndex = dataSnapshot.getValue(Integer.class);
+                db.child("maxImageIndex").setValue(maxIndex + 1);
+                db.child("images").child(Integer.toString(maxIndex + 1)).setValue(upload);
             }
 
             @Override

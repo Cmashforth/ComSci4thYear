@@ -2,16 +2,22 @@ package com.example.chris.eyespy;
 
 import com.google.firebase.database.IgnoreExtraProperties;
 
+import java.io.Serializable;
+
 /**
  * Created by Chris on 23/11/2017.
  */
 
 @IgnoreExtraProperties
-public class Upload {
+public class Upload implements Serializable{
 
-    public String value;
+    private String imageURL;
 
-    public Upload(String value){
-        this.value = value;
+    public Upload(String imageURL){
+        this.imageURL = imageURL;
+    }
+
+    public String getImageURL(){
+        return this.imageURL;
     }
 }
