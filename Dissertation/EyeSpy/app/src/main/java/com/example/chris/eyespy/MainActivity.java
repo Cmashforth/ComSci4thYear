@@ -4,6 +4,7 @@ package com.example.chris.eyespy;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.icu.text.SimpleDateFormat;
+import android.location.Location;
 import android.net.Uri;
 import android.os.Environment;
 import android.support.annotation.NonNull;
@@ -23,6 +24,8 @@ import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.firebase.ui.storage.images.FirebaseImageLoader;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -43,18 +46,18 @@ import com.google.firebase.storage.UploadTask;
 
 import java.io.File;
 import java.io.IOException;
-
 import java.util.Date;
 
 
 
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener{
 
     static final int REQUEST_TAKE_PHOTO = 1;
+    static final int REQUEST_LOCATION = 99;
+
     private ImageView mImageView;
     private Button camButton;
-    private Button changeGPS;
     private TextView logInMessage;
     private Button logInButton;
     private Button getImageButton;
@@ -66,6 +69,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private StorageReference myStor;
     private FirebaseStorage storInst;
     private ProgressBar progressBar;
+    private FusedLocationProviderClient mLocationClient;
+
 
 
     @Override
@@ -74,7 +79,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
 
         camButton = (Button) findViewById(R.id.button_image);
-        changeGPS = (Button) findViewById(R.id.GPS_Page);
         logInMessage = (TextView) findViewById(R.id.LogInMessage);
         logInButton = (Button) findViewById(R.id.LogInButton);
         signOutButton = (Button) findViewById(R.id.SignOutButton);
@@ -88,6 +92,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         myStor = FirebaseStorage.getInstance().getReference("uploads");
         storInst = FirebaseStorage.getInstance();
 
+        mLocationClient = LocationServices.getFusedLocationProviderClient(this);
+
     }
 
     @Override
@@ -95,6 +101,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onStart();
         FirebaseUser currentUser = mAuth.getCurrentUser();
         updateUI(currentUser);
+
     }
 
 
@@ -107,8 +114,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Toast.makeText(MainActivity.this, "onClick Toast",Toast.LENGTH_SHORT).show();
                 return;
             }
-        } else if(view == changeGPS){
-            changePage();
         } else if(view == logInButton){
             changeLogIn();
         } else if(view == signOutButton){
@@ -210,7 +215,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 @Override
                 public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
                     Uri newUri = taskSnapshot.getDownloadUrl();
-                    final Upload newUpload = new Upload(newUri.toString());
+                    final Upload newUpload = new Upload(newUri.toString(),FirebaseAuth.getInstance().getCurrentUser().getUid());
+                    getGPS(newUpload);
                     manageUpload(newUpload);
                 }
             });
@@ -254,9 +260,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
     }
 
-    private void changePage(){
-        Intent changePageIntent = new Intent(this,GPSPage.class);
-        startActivity(changePageIntent);
+    private void getGPS(final Upload upload){
+        if(ActivityCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},REQUEST_LOCATION);
+        }
+        mLocationClient.getLastLocation()
+                .addOnCompleteListener(this, new OnCompleteListener<Location>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Location> task) {
+                        Location mLastLocation = task.getResult();
+                        upload.setLatitude(mLastLocation.getLatitude());
+                        upload.setLongitude(mLastLocation.getLongitude());
+                    }
+                });
     }
 
     private void changePageWifi(){

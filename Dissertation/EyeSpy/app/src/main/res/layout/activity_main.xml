@@ -58,13 +58,6 @@
             android:visibility="invisible"
             android:onClick="onClick"/>
 
-        <Button
-            android:id="@+id/GPS_Page"
-            android:layout_width="wrap_content"
-            android:layout_height="48dp"
-            android:layout_alignParentBottom ="true"
-            android:text="GPS Page"
-            android:onClick="onClick"/>
 
         <Button
             android:id="@+id/Wifi"
