@@ -9,7 +9,7 @@ import java.io.Serializable;
  */
 
 @IgnoreExtraProperties
-public class Upload implements Serializable{
+class Upload implements Serializable{
 
     private String imageURL;
     private String userUploadID;

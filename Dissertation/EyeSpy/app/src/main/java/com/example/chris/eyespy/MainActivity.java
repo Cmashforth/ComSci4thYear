@@ -46,9 +46,10 @@ import com.google.firebase.storage.UploadTask;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
-
-
+import java.util.List;
 
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
@@ -89,7 +90,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseDatabase.getInstance().getReference();
-        myStor = FirebaseStorage.getInstance().getReference("uploads");
+        myStor = FirebaseStorage.getInstance().getReference();
         storInst = FirebaseStorage.getInstance();
 
         mLocationClient = LocationServices.getFusedLocationProviderClient(this);
@@ -248,9 +249,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         db.child("maxImageIndex").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                int maxIndex = dataSnapshot.getValue(Integer.class);
+                final int maxIndex = dataSnapshot.getValue(Integer.class);
                 db.child("maxImageIndex").setValue(maxIndex + 1);
                 db.child("images").child(Integer.toString(maxIndex + 1)).setValue(upload);
+                db.child("users").child(mAuth.getUid()).child("uploads").addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        List uploads = (List<Integer>) dataSnapshot.getValue();
+                        if(uploads == null){
+                            List<Integer> startUpload = new ArrayList<>(Arrays.asList(maxIndex + 1));
+                            db.child("users").child(mAuth.getUid()).child("uploads").setValue(startUpload);
+                        }else{
+                            uploads.add(maxIndex + 1);
+                            db.child("users").child(mAuth.getUid()).child("uploads").setValue(uploads);
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+
+                    }
+                });
             }
 
             @Override

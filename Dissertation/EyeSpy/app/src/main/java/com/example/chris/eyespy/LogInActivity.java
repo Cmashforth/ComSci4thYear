@@ -17,6 +17,8 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 
 public class LogInActivity extends AppCompatActivity implements View.OnClickListener {
@@ -29,6 +31,7 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
     private Button signupButton;
     private Button closeButton;
     private FirebaseAuth mAuth;
+    private DatabaseReference db;
 
 
     @Override
@@ -43,6 +46,7 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
         closeButton = (Button) findViewById(R.id.CloseButton);
 
         mAuth = FirebaseAuth.getInstance();
+        db = FirebaseDatabase.getInstance().getReference();
 
     }
 
@@ -57,6 +61,8 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if(task.isSuccessful()){
                             FirebaseUser user = mAuth.getCurrentUser();
+                            User newUser = new User(user.getEmail());
+                            db.child("users").child(user.getUid()).setValue(newUser);
                             onClick(closeButton);
                         }else{
                             Log.w(TAG, "createUserWithEmail:failure", task.getException());
