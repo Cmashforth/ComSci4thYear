@@ -4,6 +4,7 @@ import com.google.firebase.database.IgnoreExtraProperties;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -15,13 +16,15 @@ class User implements Serializable{
 
     private String email;
     private int points;
-    private List uploads;
+    private List completedImages;
+    private String username;
 
 
-    public User(String email){
+    public User(String email,String username){
         this.email = email;
         this.points = 0;
-        this.uploads = new ArrayList<>();
+        this.completedImages = new ArrayList<>();
+        this.username = username;
 
     }
 
@@ -33,6 +36,8 @@ class User implements Serializable{
         return this.points;
     }
 
-    public List getUploads() {return this.uploads;}
+    public List getCompletedImages() {return this.completedImages;}
+
+    public String getUsername() {return this.username;}
 
 }

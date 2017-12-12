@@ -14,6 +14,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.content.Intent;
 import android.provider.MediaStore;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -36,6 +37,7 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.GenericTypeIndicator;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.OnProgressListener;
@@ -46,10 +48,9 @@ import com.google.firebase.storage.UploadTask;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+
 
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
@@ -71,8 +72,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private FirebaseStorage storInst;
     private ProgressBar progressBar;
     private FusedLocationProviderClient mLocationClient;
-
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -129,7 +128,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void updateUI(FirebaseUser user){
         if(user != null){
-            logInMessage.setText("You are logged in, well done!!!");
+            logInMessage.setText("User is Logged In");
             logInButton.setVisibility(View.INVISIBLE);
             signOutButton.setVisibility(View.VISIBLE);
         }
@@ -226,21 +225,60 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void getImage(){
-        db.child("uploadImages").addListenerForSingleValueEvent(new ValueEventListener() {
+        db.child("maxImageIndex").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                String url = dataSnapshot.getValue(String.class);
-                StorageReference httpsReference = storInst.getReferenceFromUrl(url);
-                Glide.with(MainActivity.this)
-                        .using(new FirebaseImageLoader())
-                        .load(httpsReference)
-                        .into(mImageView);
+                Integer maxIndex = dataSnapshot.getValue(Integer.class);
+                if(maxIndex == 0){
+                    Toast.makeText(MainActivity.this, "No images to download",Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                imageProcessing(1,maxIndex);
+
 
             }
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
 
+            }
+        });
+    }
+
+    private void imageProcessing(final int index, final int maxIndex){
+        db.child("users").child(mAuth.getUid()).child("completedImages").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                GenericTypeIndicator<List<Integer>> indexList = new GenericTypeIndicator<List<Integer>>(){};
+                List<Integer> completedIndexList = dataSnapshot.getValue(indexList);
+                if(completedIndexList.contains(index)){
+                    int currentIndex = index + 1;
+                    imageProcessing(currentIndex,maxIndex);
+                } else{
+                    if(index > maxIndex){
+                        Toast.makeText(MainActivity.this,"All Images already checked",Toast.LENGTH_SHORT).show();
+                    }else{
+                        db.child("images").child(Integer.toString(index)).child("imageURL").addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(DataSnapshot dataSnapshot) {
+                                StorageReference httpsReference = storInst.getReferenceFromUrl(dataSnapshot.getValue(String.class));
+                                Glide.with(MainActivity.this)
+                                    .using(new FirebaseImageLoader())
+                                    .load(httpsReference)
+                                    .into(mImageView);
+                            }
+
+                            @Override
+                            public void onCancelled(DatabaseError databaseError) {
+
+                            }
+                        });
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
             }
         });
     }
@@ -252,17 +290,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 final int maxIndex = dataSnapshot.getValue(Integer.class);
                 db.child("maxImageIndex").setValue(maxIndex + 1);
                 db.child("images").child(Integer.toString(maxIndex + 1)).setValue(upload);
-                db.child("users").child(mAuth.getUid()).child("uploads").addListenerForSingleValueEvent(new ValueEventListener() {
+                db.child("users").child(mAuth.getUid()).child("completedImages").addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
                         List uploads = (List<Integer>) dataSnapshot.getValue();
-                        if(uploads == null){
-                            List<Integer> startUpload = new ArrayList<>(Arrays.asList(maxIndex + 1));
-                            db.child("users").child(mAuth.getUid()).child("uploads").setValue(startUpload);
-                        }else{
-                            uploads.add(maxIndex + 1);
-                            db.child("users").child(mAuth.getUid()).child("uploads").setValue(uploads);
-                        }
+                        uploads.add(maxIndex + 1);
+                        db.child("users").child(mAuth.getUid()).child("completedImages").setValue(uploads);
                     }
 
                     @Override
@@ -308,10 +341,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mAuth.signOut();
         updateUI(null);
     }
-
-
-
-
 
 
 }

@@ -20,6 +20,10 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 
 public class LogInActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -27,6 +31,7 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
 
     private EditText emailField;
     private EditText passwordField;
+    private EditText usernameField;
     private Button loginButton;
     private Button signupButton;
     private Button closeButton;
@@ -41,6 +46,7 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
 
         emailField = (EditText) findViewById(R.id.Email);
         passwordField = (EditText) findViewById(R.id.Password);
+        usernameField = (EditText) findViewById(R.id.UserName);
         loginButton = (Button) findViewById(R.id.LogInButton);
         signupButton = (Button) findViewById(R.id.SignUpButton);
         closeButton = (Button) findViewById(R.id.CloseButton);
@@ -61,8 +67,10 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if(task.isSuccessful()){
                             FirebaseUser user = mAuth.getCurrentUser();
-                            User newUser = new User(user.getEmail());
+                            User newUser = new User(user.getEmail(),usernameField.getText().toString());
                             db.child("users").child(user.getUid()).setValue(newUser);
+                            List<Integer> startUpload = new ArrayList<>(Arrays.asList(0));
+                            db.child("users").child(mAuth.getUid()).child("completedImages").setValue(startUpload);
                             onClick(closeButton);
                         }else{
                             Log.w(TAG, "createUserWithEmail:failure", task.getException());
@@ -109,6 +117,14 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
             valid = false;
         }else{
             passwordField.setError(null);
+        }
+
+        String username = usernameField.getText().toString();
+        if(TextUtils.isEmpty(username)){
+            usernameField.setError("Required");
+            valid = false;
+        } else{
+            usernameField.setError(null);
         }
 
         return valid;
