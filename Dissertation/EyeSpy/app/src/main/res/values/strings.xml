@@ -1,4 +1,18 @@
 <resources>
     <string name="app_name">EyeSpy</string>
-    <string name="title_activity_gpspage">GPSPage</string>
+    <string name="LogInMessage">You are not Logged In!!!</string>
+    <string name="MainActivityImageViewContentDescription"> </string>
+    <string name="CameraButtonText">Camera</string>
+    <string name="LogInButtonText">Log In</string>
+    <string name="SignOutButtonText">Sign Out</string>
+    <string name="GetImageButtonText">Get Image</string>
+    <string name="LogInPopupTitle">Log In/Sign Up</string>
+    <string name="EnterEmailHint">Enter Email</string>
+    <string name="EnterPasswordHint">Enter Password</string>
+    <string name="EnterUsernameHint">Enter Username</string>
+    <string name="SignUpButtonText">Sign Up</string>
+    <string name="CloseButtonText">Close</string>
+    <string name="SuccessfulLogInMessage">User is Logged In</string>
+
+
 </resources>

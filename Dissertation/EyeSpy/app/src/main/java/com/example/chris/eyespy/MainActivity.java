@@ -63,14 +63,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private TextView logInMessage;
     private Button logInButton;
     private Button getImageButton;
-    private FirebaseAuth mAuth;
     private Button signOutButton;
-    private String mCurrentPhotoPath;
-    private DatabaseReference db;
     private Button wifiButton;
+
+    private String mCurrentPhotoPath;
+    private ProgressBar progressBar;
+
+    private DatabaseReference db;
     private StorageReference myStor;
     private FirebaseStorage storInst;
-    private ProgressBar progressBar;
+    private FirebaseAuth mAuth;
+
     private FusedLocationProviderClient mLocationClient;
 
     @Override
@@ -78,14 +81,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        camButton = (Button) findViewById(R.id.button_image);
-        logInMessage = (TextView) findViewById(R.id.LogInMessage);
-        logInButton = (Button) findViewById(R.id.LogInButton);
-        signOutButton = (Button) findViewById(R.id.SignOutButton);
-        wifiButton = (Button)findViewById(R.id.Wifi);
-        progressBar = (ProgressBar) findViewById(R.id.uploadProgress);
-        getImageButton =(Button) findViewById(R.id.getImage);
-        mImageView = (ImageView) findViewById(R.id.image);
+        camButton = findViewById(R.id.button_image);
+        logInMessage = findViewById(R.id.LogInMessage);
+        logInButton =  findViewById(R.id.LogInButton);
+        signOutButton = findViewById(R.id.SignOutButton);
+        wifiButton = findViewById(R.id.Wifi);
+        progressBar = findViewById(R.id.uploadProgress);
+        getImageButton = findViewById(R.id.getImage);
+        mImageView = findViewById(R.id.image);
 
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseDatabase.getInstance().getReference();
@@ -112,7 +115,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 takePicture();
             } catch(IOException ex){
                 Toast.makeText(MainActivity.this, "onClick Toast",Toast.LENGTH_SHORT).show();
-                return;
+
             }
         } else if(view == logInButton){
             changeLogIn();
@@ -128,12 +131,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void updateUI(FirebaseUser user){
         if(user != null){
-            logInMessage.setText("User is Logged In");
+            logInMessage.setText(R.string.SuccessfulLogInMessage);
             logInButton.setVisibility(View.INVISIBLE);
             signOutButton.setVisibility(View.VISIBLE);
         }
         else{
-            logInMessage.setText("You are not Logged In");
+            logInMessage.setText(R.string.LogInMessage);
             signOutButton.setVisibility(View.INVISIBLE);
             logInButton.setVisibility(View.VISIBLE);
         }

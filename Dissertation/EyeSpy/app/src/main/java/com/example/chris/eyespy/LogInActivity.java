@@ -35,6 +35,7 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
     private Button loginButton;
     private Button signupButton;
     private Button closeButton;
+
     private FirebaseAuth mAuth;
     private DatabaseReference db;
 
@@ -44,12 +45,12 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_popuplogin);
 
-        emailField = (EditText) findViewById(R.id.Email);
-        passwordField = (EditText) findViewById(R.id.Password);
-        usernameField = (EditText) findViewById(R.id.UserName);
-        loginButton = (Button) findViewById(R.id.LogInButton);
-        signupButton = (Button) findViewById(R.id.SignUpButton);
-        closeButton = (Button) findViewById(R.id.CloseButton);
+        emailField = findViewById(R.id.Email);
+        passwordField = findViewById(R.id.Password);
+        usernameField = findViewById(R.id.UserName);
+        loginButton = findViewById(R.id.LogInButton);
+        signupButton = findViewById(R.id.SignUpButton);
+        closeButton = findViewById(R.id.CloseButton);
 
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseDatabase.getInstance().getReference();
@@ -92,6 +93,7 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if(task.isSuccessful()){
                             FirebaseUser user = mAuth.getCurrentUser();
+                            onClick(closeButton);
                         }else{
                             Log.w(TAG, "signInWithEmail:failure", task.getException());
                             Toast.makeText(LogInActivity.this, "Failed Log In",Toast.LENGTH_SHORT).show();

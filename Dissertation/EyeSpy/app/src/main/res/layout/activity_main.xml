@@ -5,14 +5,12 @@
     android:layout_height="match_parent"
     tools:context="com.example.chris.eyespy.MainActivity">
 
-
-
     <TextView
         android:layout_width="match_parent"
         android:layout_height="40dp"
-        android:text = "You are not logged In"
+        android:text = "@string/LogInMessage"
         android:textAlignment="center"
-        android:textSize="20dp"
+        android:textSize="20sp"
         android:id= "@+id/LogInMessage"/>
 
     <ProgressBar
@@ -30,7 +28,8 @@
         android:id="@+id/image"
         android:layout_above="@+id/LogInButton"
         android:layout_alignParentEnd="true"
-        android:layout_marginEnd="10dp"/>
+        android:layout_marginEnd="10dp"
+        android:contentDescription="@string/MainActivityImageViewContentDescription"/>
 
         <Button
             android:id="@+id/button_image"
@@ -38,7 +37,7 @@
             android:layout_width="wrap_content"
             android:layout_alignParentBottom ="true"
             android:layout_centerHorizontal="true"
-            android:text="Camera"
+            android:text="@string/CameraButtonText"
             android:onClick="onClick"/>
 
         <Button android:id="@+id/LogInButton"
@@ -46,7 +45,7 @@
                 android:layout_width= "wrap_content"
                 android:layout_centerHorizontal="true"
                 android:layout_above="@+id/button_image"
-                android:text= "Log In"
+                android:text= "@string/LogInButtonText"
                 android:onClick="onClick"/>
 
         <Button android:id="@+id/SignOutButton"
@@ -54,7 +53,7 @@
             android:layout_width= "wrap_content"
             android:layout_centerHorizontal="true"
             android:layout_above="@+id/button_image"
-            android:text= "SignOut"
+            android:text= "@string/SignOutButtonText"
             android:visibility="invisible"
             android:onClick="onClick"/>
 
@@ -64,7 +63,7 @@
             android:layout_width="wrap_content"
             android:layout_height="48dp"
             android:layout_alignParentBottom="true"
-            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"
             android:text="Wifi"
             android:onClick="onClick"/>
 
@@ -72,7 +71,7 @@
         android:id="@+id/getImage"
         android:layout_width="wrap_content"
         android:layout_height="48dp"
-        android:text="Get Image"
+        android:text="@string/GetImageButtonText"
         android:onClick="onClick"
         android:layout_above="@+id/Wifi"
         android:layout_alignParentEnd="true" />
