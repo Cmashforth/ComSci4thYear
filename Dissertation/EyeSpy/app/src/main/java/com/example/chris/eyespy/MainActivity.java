@@ -14,7 +14,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.content.Intent;
 import android.provider.MediaStore;
-import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -50,6 +49,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+
 
 
 
@@ -99,6 +99,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
+    //Methods that override inbuilt methods
     @Override
     public void onStart(){
         super.onStart();
@@ -129,6 +130,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
+    //UI Methods
     private void updateUI(FirebaseUser user){
         if(user != null){
             logInMessage.setText(R.string.SuccessfulLogInMessage);
@@ -142,6 +144,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    //Image Upload Methods
     private File createImageFile() throws IOException {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
@@ -167,20 +170,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},1024);
         }
         Intent takePic = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-
         if(takePic.resolveActivity(getPackageManager())!= null){
-            File photoFile = null;
             try{
-                photoFile = createImageFile();
+                File photoFile = createImageFile();
+                if(photoFile != null && mAuth != null){
+                    Uri outputFileUri = FileProvider.getUriForFile(MainActivity.this,BuildConfig.APPLICATION_ID + ".provider",createImageFile());
+                    takePic.putExtra(MediaStore.EXTRA_OUTPUT,outputFileUri);
+                    startActivityForResult(takePic,REQUEST_TAKE_PHOTO);
+                }
             } catch(IOException ex){
-                Toast.makeText(MainActivity.this, "Picture Toast",Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            if(photoFile != null){
-                Uri outputFileUri = FileProvider.getUriForFile(MainActivity.this,BuildConfig.APPLICATION_ID + ".provider",createImageFile());
-                takePic.putExtra(MediaStore.EXTRA_OUTPUT,outputFileUri);
-                startActivityForResult(takePic,REQUEST_TAKE_PHOTO);
+                Toast.makeText(MainActivity.this, "Can't Create File",Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -218,22 +217,69 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 @Override
                 public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
                     Uri newUri = taskSnapshot.getDownloadUrl();
-                    final Upload newUpload = new Upload(newUri.toString(),FirebaseAuth.getInstance().getCurrentUser().getUid());
-                    getGPS(newUpload);
-                    manageUpload(newUpload);
+                    if(newUri != null){
+                        final Upload newUpload = new Upload(newUri.toString(),mAuth.getUid());
+                        getGPS(newUpload);
+                        manageUpload(newUpload,mAuth.getUid());
+                    }else{
+                        final Upload newUpload = new Upload("Database Error",mAuth.getUid());
+                        manageUpload(newUpload,mAuth.getUid());
+                    }
+
                 }
             });
         }
 
     }
 
+    private void manageUpload(final Upload upload, final String mAuthID){
+        db.child("maxImageIndex").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                final Integer maxIndex = dataSnapshot.getValue(Integer.class);
+                if (maxIndex != null) {
+                    db.child("maxImageIndex").setValue(maxIndex + 1);
+                    db.child("images").child(Integer.toString(maxIndex + 1)).setValue(upload);
+                    db.child("users").child(mAuthID).child("completedImages").addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot) {
+                            GenericTypeIndicator<List<Integer>> indexList = new GenericTypeIndicator<List<Integer>>() {
+                            };
+                            List<Integer> uploads = dataSnapshot.getValue(indexList);
+                            if (uploads != null) {
+                                uploads.add(maxIndex + 1);
+                                db.child("users").child(mAuthID).child("completedImages").setValue(uploads);
+                            } else {
+                                Toast.makeText(MainActivity.this, "No Upload List Exists", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+
+                        }
+                    });
+                }else{
+                    Toast.makeText(MainActivity.this,"Max Integer Error",Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+    }
+
+
+    //Image Retrieval Methods
     private void getImage(){
         db.child("maxImageIndex").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 Integer maxIndex = dataSnapshot.getValue(Integer.class);
-                if(maxIndex == 0){
-                    Toast.makeText(MainActivity.this, "No images to download",Toast.LENGTH_SHORT).show();
+                if(maxIndex == null){
+                    Toast.makeText(MainActivity.this, "No Maximum Index Exists",Toast.LENGTH_SHORT).show();
                     return;
                 }
                 imageProcessing(1,maxIndex);
@@ -249,72 +295,58 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void imageProcessing(final int index, final int maxIndex){
-        db.child("users").child(mAuth.getUid()).child("completedImages").addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                GenericTypeIndicator<List<Integer>> indexList = new GenericTypeIndicator<List<Integer>>(){};
-                List<Integer> completedIndexList = dataSnapshot.getValue(indexList);
-                if(completedIndexList.contains(index)){
-                    int currentIndex = index + 1;
-                    imageProcessing(currentIndex,maxIndex);
-                } else{
-                    if(index > maxIndex){
-                        Toast.makeText(MainActivity.this,"All Images already checked",Toast.LENGTH_SHORT).show();
-                    }else{
-                        db.child("images").child(Integer.toString(index)).child("imageURL").addListenerForSingleValueEvent(new ValueEventListener() {
-                            @Override
-                            public void onDataChange(DataSnapshot dataSnapshot) {
-                                StorageReference httpsReference = storInst.getReferenceFromUrl(dataSnapshot.getValue(String.class));
-                                Glide.with(MainActivity.this)
-                                    .using(new FirebaseImageLoader())
-                                    .load(httpsReference)
-                                    .into(mImageView);
-                            }
+        if(mAuth.getUid() != null) {
+            db.child("users").child(mAuth.getUid()).child("completedImages").addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    GenericTypeIndicator<List<Integer>> indexList = new GenericTypeIndicator<List<Integer>>() {
+                    };
+                    List<Integer> completedIndexList = dataSnapshot.getValue(indexList);
+                    if (completedIndexList != null && completedIndexList.contains(index)) {
+                        int currentIndex = index + 1;
+                        imageProcessing(currentIndex, maxIndex);
+                    } else {
+                        if (index > maxIndex) {
+                            Toast.makeText(MainActivity.this, "All Images already checked", Toast.LENGTH_SHORT).show();
+                        } else if (completedIndexList == null) {
+                            Toast.makeText(MainActivity.this, "No existing index list", Toast.LENGTH_SHORT).show();
+                        } else {
+                            db.child("images").child(Integer.toString(index)).child("imageURL").addListenerForSingleValueEvent(new ValueEventListener() {
+                                @Override
+                                public void onDataChange(DataSnapshot dataSnapshot) {
+                                    String downloadURL = dataSnapshot.getValue(String.class);
+                                    if(downloadURL != null){
+                                        StorageReference httpsReference = storInst.getReferenceFromUrl(downloadURL);
+                                        Glide.with(MainActivity.this)
+                                                .using(new FirebaseImageLoader())
+                                                .load(httpsReference)
+                                                .into(mImageView);
+                                    }else{
+                                        Toast.makeText(MainActivity.this,"Download URL does not Exist",Toast.LENGTH_SHORT).show();
+                                    }
 
-                            @Override
-                            public void onCancelled(DatabaseError databaseError) {
+                                }
 
-                            }
-                        });
+                                @Override
+                                public void onCancelled(DatabaseError databaseError) {
+
+                                }
+                            });
+                        }
                     }
                 }
-            }
 
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-            }
-        });
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
+                }
+            });
+        }else{
+            Toast.makeText(MainActivity.this,"No User Logged In",Toast.LENGTH_SHORT).show();
+        }
     }
 
-    private void manageUpload(final Upload upload){
-        db.child("maxImageIndex").addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                final int maxIndex = dataSnapshot.getValue(Integer.class);
-                db.child("maxImageIndex").setValue(maxIndex + 1);
-                db.child("images").child(Integer.toString(maxIndex + 1)).setValue(upload);
-                db.child("users").child(mAuth.getUid()).child("completedImages").addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        List uploads = (List<Integer>) dataSnapshot.getValue();
-                        uploads.add(maxIndex + 1);
-                        db.child("users").child(mAuth.getUid()).child("completedImages").setValue(uploads);
-                    }
 
-                    @Override
-                    public void onCancelled(DatabaseError databaseError) {
-
-                    }
-                });
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-
-            }
-        });
-    }
-
+    //getGps and Wifi Methods
     private void getGPS(final Upload upload){
         if(ActivityCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},REQUEST_LOCATION);
@@ -330,6 +362,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 });
     }
 
+
+    //OnClick methods
     private void changePageWifi(){
         Intent changePageIntent = new Intent(this,WifiActivity.class);
         startActivity(changePageIntent);
