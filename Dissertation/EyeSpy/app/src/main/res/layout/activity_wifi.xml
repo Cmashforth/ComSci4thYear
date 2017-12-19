@@ -8,32 +8,21 @@
     android:orientation="vertical"
     tools:context="com.example.chris.eyespy.WifiActivity">
 
-    <LinearLayout
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="87dp"
+        android:text="Get Wifi"
+        android:id="@+id/Button"
+        android:onClick="onClick"/>
+
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:id="@+id/list">
 
-        <TextView
-            android:id ="@+id/textStatus"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text ="Status"/>
+    </TextView>
 
-        <Button
-            android:id="@+id/scanWifi"
-            android:layout_width="wrap_content"
-            android:layout_height="40dp"
-            android:text="Scan"
-            android:onClick="getWifi"/>
-    </LinearLayout>
 
-    <ListView
-        android:id="@+id/wifiList"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginTop="20dp"></ListView>
 </LinearLayout>
 
 

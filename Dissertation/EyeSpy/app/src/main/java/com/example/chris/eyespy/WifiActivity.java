@@ -22,57 +22,45 @@ import java.util.List;
 public class WifiActivity extends AppCompatActivity {
 
     WifiManager wifi;
-    ListView list;
-    TextView textStatus;
-    Button scan;
-    int size = 0;
-    List<ScanResult> results;
-
-    String ITEM_KEY = "key";
-    ArrayList<HashMap<String,String>> arrayList = new ArrayList<HashMap<String, String>>();
-    SimpleAdapter adapter;
+    WifiReceiver receiver;
+    Button wifiButton;
+    TextView list;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_wifi);
 
-        textStatus = (TextView) findViewById(R.id.textStatus);
-        scan = (Button) findViewById(R.id.scanWifi);
-        list = (ListView)findViewById(R.id.wifiList);
+        wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        wifiButton = findViewById(R.id.Button);
+        list = findViewById(R.id.list);
+    }
 
-        wifi = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        if(wifi.isWifiEnabled() == false){
-            Toast.makeText(getApplicationContext(), "wifi is disabled, making it enabled", Toast.LENGTH_LONG).show();
-            wifi.setWifiEnabled(true);
+    public void onClick(View view){
+        if(view == wifiButton){
+            receiver = new WifiReceiver();
+            registerReceiver(receiver,new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+            wifi.startScan();
         }
-        this.adapter = new SimpleAdapter(WifiActivity.this, arrayList, R.layout.row, new String[] { ITEM_KEY }, new int[] { R.id.list_value });
-        list.setAdapter(this.adapter);
-
-        registerReceiver(new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                results = wifi.getScanResults();
-                size = results.size();
-            }
-        }, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
-    }
-
-    public void getWifi(View view){
-        arrayList.clear();
-        wifi.startScan();
-
-        Toast.makeText(this, "Scanning...." + size, Toast.LENGTH_SHORT).show();
-        try{
-            size = size - 1;
-            while(size >= 0){
-                HashMap<String,String> item = new HashMap<String,String>();
-                item.put(ITEM_KEY, results.get(size).SSID + " " + results.get(size).BSSID);
-                arrayList.add(item);
-                size--;
-                adapter.notifyDataSetChanged();
-            }
-        } catch (Exception e){}
 
     }
+
+    class WifiReceiver extends BroadcastReceiver{
+        public void onReceive(Context c, Intent intent){
+
+            ArrayList<String> connections = new ArrayList<>();
+            List<ScanResult> wifiList = wifi.getScanResults();
+            for(int i = 0; i < wifiList.size(); i++){
+                connections.add(wifiList.get(i).SSID + " "+ wifiList.get(i).BSSID);
+            }
+            String displayString = "";
+            for(int i = 0;i < connections.size();i++){
+                displayString = displayString + connections.get(i) + "\n";
+            }
+            list.setText(displayString);
+        }
+    }
+
+
+
 }

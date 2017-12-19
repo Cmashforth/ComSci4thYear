@@ -2,10 +2,15 @@ package com.example.chris.eyespy;
 
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.icu.text.SimpleDateFormat;
 import android.location.Location;
 import android.net.Uri;
+import android.net.wifi.ScanResult;
+import android.net.wifi.WifiManager;
 import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
@@ -47,6 +52,7 @@ import com.google.firebase.storage.UploadTask;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -361,6 +367,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }
                 });
     }
+
+    private void getWifiNetworks(final Upload upload){
+        WifiManager wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        WifiReceiver receiver = new WifiReceiver(upload);
+        registerReceiver(receiver,new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+        wifi.startScan();
+    }
+
+    class WifiReceiver extends BroadcastReceiver {
+
+        private Upload upload;
+
+        public WifiReceiver(Upload upload){
+            this.upload = upload;
+        }
+
+        public void onReceive(Context c, Intent intent){
+            //TODO
+        }
+    }
+
 
 
     //OnClick methods

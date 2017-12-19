@@ -21,7 +21,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -68,11 +68,16 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if(task.isSuccessful()){
                             FirebaseUser user = mAuth.getCurrentUser();
-                            User newUser = new User(user.getEmail(),usernameField.getText().toString());
-                            db.child("users").child(user.getUid()).setValue(newUser);
-                            List<Integer> startUpload = new ArrayList<>(Arrays.asList(0));
-                            db.child("users").child(mAuth.getUid()).child("completedImages").setValue(startUpload);
-                            onClick(closeButton);
+                            if(user != null){
+                                User newUser = new User(user.getEmail(),usernameField.getText().toString());
+                                db.child("users").child(user.getUid()).setValue(newUser);
+                                List<Integer> startUpload = new ArrayList<>(Collections.singletonList(0));
+                                db.child("users").child(user.getUid()).child("completedImages").setValue(startUpload);
+                                onClick(closeButton);
+                            } else{
+                                Toast.makeText(LogInActivity.this,"User Databasing Error",Toast.LENGTH_SHORT).show();
+                            }
+
                         }else{
                             Log.w(TAG, "createUserWithEmail:failure", task.getException());
                             Toast.makeText(LogInActivity.this, "Failed Sign Up", Toast.LENGTH_SHORT).show();
@@ -92,7 +97,6 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if(task.isSuccessful()){
-                            FirebaseUser user = mAuth.getCurrentUser();
                             onClick(closeButton);
                         }else{
                             Log.w(TAG, "signInWithEmail:failure", task.getException());
