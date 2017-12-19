@@ -20,7 +20,7 @@ class User implements Serializable{
     private String username;
 
 
-    public User(String email,String username){
+    User(String email,String username){
         this.email = email;
         this.points = 0;
         this.completedImages = new ArrayList<>();

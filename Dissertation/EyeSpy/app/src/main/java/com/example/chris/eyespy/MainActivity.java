@@ -70,7 +70,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button logInButton;
     private Button getImageButton;
     private Button signOutButton;
-    private Button wifiButton;
 
     private String mCurrentPhotoPath;
     private ProgressBar progressBar;
@@ -81,6 +80,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private FirebaseAuth mAuth;
 
     private FusedLocationProviderClient mLocationClient;
+    private WifiManager wifi;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,7 +91,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         logInMessage = findViewById(R.id.LogInMessage);
         logInButton =  findViewById(R.id.LogInButton);
         signOutButton = findViewById(R.id.SignOutButton);
-        wifiButton = findViewById(R.id.Wifi);
         progressBar = findViewById(R.id.uploadProgress);
         getImageButton = findViewById(R.id.getImage);
         mImageView = findViewById(R.id.image);
@@ -102,6 +101,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         storInst = FirebaseStorage.getInstance();
 
         mLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
 
     }
 
@@ -128,8 +128,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             changeLogIn();
         } else if(view == signOutButton){
             signUserOut();
-        } else if(view == wifiButton){
-            changePageWifi();
         } else if(view == getImageButton){
             getImage();
         }
@@ -226,7 +224,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     if(newUri != null){
                         final Upload newUpload = new Upload(newUri.toString(),mAuth.getUid());
                         getGPS(newUpload);
-                        manageUpload(newUpload,mAuth.getUid());
+                        getWifiNetworks(newUpload);
                     }else{
                         final Upload newUpload = new Upload("Database Error",mAuth.getUid());
                         manageUpload(newUpload,mAuth.getUid());
@@ -369,33 +367,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void getWifiNetworks(final Upload upload){
-        WifiManager wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-        WifiReceiver receiver = new WifiReceiver(upload);
-        registerReceiver(receiver,new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
         wifi.startScan();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
+
+        registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                List<ScanResult> results = wifi.getScanResults();
+                ArrayList<String> connections = new ArrayList<>();
+                for(int i = 0; i < results.size(); i++){
+                    connections.add(results.get(i).SSID + " "+ results.get(i).BSSID);
+                }
+                upload.setWifiNetworks(connections);
+                manageUpload(upload,upload.getUserUploadID());
+            }
+        },filter);
     }
-
-    class WifiReceiver extends BroadcastReceiver {
-
-        private Upload upload;
-
-        public WifiReceiver(Upload upload){
-            this.upload = upload;
-        }
-
-        public void onReceive(Context c, Intent intent){
-            //TODO
-        }
-    }
-
-
 
     //OnClick methods
-    private void changePageWifi(){
-        Intent changePageIntent = new Intent(this,WifiActivity.class);
-        startActivity(changePageIntent);
-    }
-
     private void changeLogIn(){
         Intent changePageIntent = new Intent(this,LogInActivity.class);
         startActivity(changePageIntent);

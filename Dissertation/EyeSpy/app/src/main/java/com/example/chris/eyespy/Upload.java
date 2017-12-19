@@ -21,7 +21,7 @@ class Upload implements Serializable{
     private double longitude;
     private List wifiNetworks;
 
-    public Upload(String imageURL, String userUploadID){
+    Upload(String imageURL, String userUploadID){
         this.imageURL = imageURL;
         this.userUploadID = userUploadID;
         this.correctCheckCount = 0;
@@ -33,7 +33,7 @@ class Upload implements Serializable{
         return this.imageURL;
     }
 
-    public String getUserUploadID(){
+    String getUserUploadID(){
         return this.userUploadID;
     }
 
@@ -57,15 +57,15 @@ class Upload implements Serializable{
         return this.wifiNetworks;
     }
 
-    public void setLatitude(double latitude){
+    void setLatitude(double latitude){
         this.latitude = latitude;
     }
 
-    public void setLongitude(double longitude){
+    void setLongitude(double longitude){
         this.longitude = longitude;
     }
 
-    public void setWifiNetworks(List networkList){
+    void setWifiNetworks(List networkList){
         this.wifiNetworks = networkList;
     }
 
