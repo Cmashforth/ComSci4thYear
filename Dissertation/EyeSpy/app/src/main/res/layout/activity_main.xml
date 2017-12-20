@@ -8,10 +8,10 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="40dp"
-        android:text = "@string/LogInMessage"
         android:textAlignment="center"
         android:textSize="20sp"
-        android:id= "@+id/LogInMessage"/>
+        android:id= "@+id/LogInMessage"
+        android:layout_centerHorizontal="true"/>
 
     <ProgressBar
         android:id="@+id/uploadProgress"
@@ -27,26 +27,29 @@
         android:layout_height="350dp"
         android:id="@+id/image"
         android:contentDescription="@string/MainActivityImageViewContentDescription"
-        android:layout_above="@+id/LogInButton"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="50dp"/>
+        android:layout_below="@+id/uploadProgress"
+        android:layout_centerHorizontal="true" />
 
         <Button
             android:id="@+id/button_image"
             android:layout_height="48dp"
             android:layout_width="wrap_content"
-            android:layout_alignParentBottom ="true"
-            android:layout_centerHorizontal="true"
             android:text="@string/CameraButtonText"
-            android:onClick="onClick"/>
+            android:onClick="onClick"
+            android:layout_marginTop="20dp"
+            android:layout_marginStart="11dp"
+            android:layout_below="@+id/image"
+            android:layout_alignStart="@+id/image"
+            android:layout_marginRight="5dp"/>
 
-        <Button android:id="@+id/SignOutButton"
+        <Button
+            android:id="@+id/SignOutButton"
             android:layout_height="48dp"
             android:layout_width= "wrap_content"
-            android:layout_centerHorizontal="true"
-            android:layout_above="@+id/button_image"
             android:text= "@string/SignOutButtonText"
-            android:onClick="onClick"/>
+            android:onClick="onClick"
+            android:layout_below="@+id/button_image"
+            android:layout_centerHorizontal="true" />
 
 
     <Button
@@ -55,7 +58,20 @@
         android:layout_height="48dp"
         android:text="@string/GetImageButtonText"
         android:onClick="onClick"
-        android:layout_alignParentBottom="true"
+        android:layout_alignTop="@+id/checkButton"
         android:layout_alignEnd="@+id/image" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:text="@string/SkipButtonText"
+        android:textSize="12sp"
+        android:id="@+id/checkButton"
+        android:visibility="invisible"
+        android:onClick="onClick"
+        android:layout_above="@+id/SignOutButton"
+        android:layout_centerHorizontal="true" />
+
+
 
 </RelativeLayout>

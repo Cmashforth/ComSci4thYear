@@ -36,7 +36,6 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -69,6 +68,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private TextView logInMessage;
     private Button getImageButton;
     private Button signOutButton;
+    private Button checkButton;
 
     private String mCurrentPhotoPath;
     private ProgressBar progressBar;
@@ -92,6 +92,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         progressBar = findViewById(R.id.uploadProgress);
         getImageButton = findViewById(R.id.getImage);
         mImageView = findViewById(R.id.image);
+        checkButton = findViewById(R.id.checkButton);
 
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseDatabase.getInstance().getReference();
@@ -109,8 +110,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onStart();
         if(mAuth.getCurrentUser() == null){
             signUserOut();
-        }else{
-            logInMessage.setText(logInMessage.getText() + " " + mAuth.getUid());
+        }else if(mAuth.getUid() != null){
+            db.child("users").child(mAuth.getUid()).child("username").addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    logInMessage.setText(dataSnapshot.getValue(String.class));
+                }
+
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
+
+                }
+            });
         }
     }
 
@@ -308,6 +319,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                                 .using(new FirebaseImageLoader())
                                                 .load(httpsReference)
                                                 .into(mImageView);
+                                        checkButton.setVisibility(View.VISIBLE);
                                     }else{
                                         Toast.makeText(MainActivity.this,"Download URL does not Exist",Toast.LENGTH_SHORT).show();
                                     }

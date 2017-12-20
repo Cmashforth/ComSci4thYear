@@ -58,7 +58,7 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
     }
 
     private void createAccount(String email,String password){
-        if(!validateForm()){
+        if(!validateForm(1)){
             return;
         }
 
@@ -88,7 +88,7 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
     }
 
     private void signIn(String email, String password){
-        if(!validateForm()){
+        if(!validateForm(2)){
             return;
         }
 
@@ -106,7 +106,7 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
                 });
     }
 
-    private boolean validateForm(){
+    private boolean validateForm(int code){
         boolean valid = true;
 
         String email = emailField.getText().toString();
@@ -125,28 +125,27 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
             passwordField.setError(null);
         }
 
-        String username = usernameField.getText().toString();
-        if(TextUtils.isEmpty(username)){
-            usernameField.setError("Required");
-            valid = false;
-        } else{
-            usernameField.setError(null);
+        if(code == 1){
+            String username = usernameField.getText().toString();
+            if(TextUtils.isEmpty(username)){
+                usernameField.setError("Required");
+                valid = false;
+            } else{
+                usernameField.setError(null);
+            }
         }
-
         return valid;
 
     }
 
-
     public void onClick(View v){
-        int i = v.getId();
-        if(i == R.id.SignUpButton){
+        if(v == signupButton){
             createAccount(emailField.getText().toString(),passwordField.getText().toString());
         }
-        else if(i == R.id.LogInButton){
+        else if(v == loginButton){
             signIn(emailField.getText().toString(),passwordField.getText().toString());
         }
-        else if(i == R.id.CloseButton){
+        else if(v == closeButton){
             Intent changePageIntent = new Intent(this,StartUpActivity.class);
             startActivity(changePageIntent);
         }
