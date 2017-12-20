@@ -40,21 +40,12 @@
             android:text="@string/CameraButtonText"
             android:onClick="onClick"/>
 
-        <Button android:id="@+id/LogInButton"
-                android:layout_height="48dp"
-                android:layout_width= "wrap_content"
-                android:layout_centerHorizontal="true"
-                android:layout_above="@+id/button_image"
-                android:text= "@string/LogInButtonText"
-                android:onClick="onClick"/>
-
         <Button android:id="@+id/SignOutButton"
             android:layout_height="48dp"
             android:layout_width= "wrap_content"
             android:layout_centerHorizontal="true"
             android:layout_above="@+id/button_image"
             android:text= "@string/SignOutButtonText"
-            android:visibility="invisible"
             android:onClick="onClick"/>
 
 

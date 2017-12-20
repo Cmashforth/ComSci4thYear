@@ -147,7 +147,7 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
             signIn(emailField.getText().toString(),passwordField.getText().toString());
         }
         else if(i == R.id.CloseButton){
-            Intent changePageIntent = new Intent(this,MainActivity.class);
+            Intent changePageIntent = new Intent(this,StartUpActivity.class);
             startActivity(changePageIntent);
         }
     }

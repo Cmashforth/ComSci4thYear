@@ -67,7 +67,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private ImageView mImageView;
     private Button camButton;
     private TextView logInMessage;
-    private Button logInButton;
     private Button getImageButton;
     private Button signOutButton;
 
@@ -89,7 +88,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         camButton = findViewById(R.id.button_image);
         logInMessage = findViewById(R.id.LogInMessage);
-        logInButton =  findViewById(R.id.LogInButton);
         signOutButton = findViewById(R.id.SignOutButton);
         progressBar = findViewById(R.id.uploadProgress);
         getImageButton = findViewById(R.id.getImage);
@@ -109,9 +107,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onStart(){
         super.onStart();
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        updateUI(currentUser);
-
+        if(mAuth.getCurrentUser() == null){
+            signUserOut();
+        }else{
+            logInMessage.setText(logInMessage.getText() + " " + mAuth.getUid());
+        }
     }
 
 
@@ -122,30 +122,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 takePicture();
             } catch(IOException ex){
                 Toast.makeText(MainActivity.this, "onClick Toast",Toast.LENGTH_SHORT).show();
-
             }
-        } else if(view == logInButton){
-            changeLogIn();
         } else if(view == signOutButton){
             signUserOut();
         } else if(view == getImageButton){
             getImage();
         }
 
-    }
-
-    //UI Methods
-    private void updateUI(FirebaseUser user){
-        if(user != null){
-            logInMessage.setText(R.string.SuccessfulLogInMessage);
-            logInButton.setVisibility(View.INVISIBLE);
-            signOutButton.setVisibility(View.VISIBLE);
-        }
-        else{
-            logInMessage.setText(R.string.LogInMessage);
-            signOutButton.setVisibility(View.INVISIBLE);
-            logInButton.setVisibility(View.VISIBLE);
-        }
     }
 
     //Image Upload Methods
@@ -385,15 +368,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         },filter);
     }
 
-    //OnClick methods
-    private void changeLogIn(){
-        Intent changePageIntent = new Intent(this,LogInActivity.class);
-        startActivity(changePageIntent);
-    }
-
+    //onClick Methods
     private void signUserOut(){
         mAuth.signOut();
-        updateUI(null);
+        Intent exitIntent = new Intent(this,StartUpActivity.class);
+        startActivity(exitIntent);
     }
 
 
