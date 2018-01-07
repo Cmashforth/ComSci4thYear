@@ -11,19 +11,21 @@ import java.util.List;
  */
 
 @IgnoreExtraProperties
-class Upload implements Serializable{
+class ImageData implements Serializable{
 
     private String imageURL;
-    private String userUploadID;
+    private String userID;
     private int correctCheckCount;
     private int skipCount;
     private double latitude;
     private double longitude;
     private List wifiNetworks;
 
-    Upload(String imageURL, String userUploadID){
+    ImageData(){};
+
+    ImageData(String imageURL, String userID){
         this.imageURL = imageURL;
-        this.userUploadID = userUploadID;
+        this.userID = userID;
         this.correctCheckCount = 0;
         this.skipCount = 0;
         this.wifiNetworks = new ArrayList<>();
@@ -33,8 +35,8 @@ class Upload implements Serializable{
         return this.imageURL;
     }
 
-    String getUserUploadID(){
-        return this.userUploadID;
+    String getUserID(){
+        return this.userID;
     }
 
     public int getCorrectCheckCount(){

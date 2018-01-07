@@ -72,6 +72,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private String mCurrentPhotoPath;
     private ProgressBar progressBar;
+    private ImageData currentImageData;
+    private int index;
 
     private DatabaseReference db;
     private StorageReference myStor;
@@ -101,6 +103,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         mLocationClient = LocationServices.getFusedLocationProviderClient(this);
         wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        currentImageData = new ImageData();
+        index = 1;
 
     }
 
@@ -138,11 +142,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             signUserOut();
         } else if(view == getImageButton){
             getImage();
+        } else if(view == checkButton){
+            Toast.makeText(MainActivity.this, "GPS " + currentImageData.getLongitude(),Toast.LENGTH_SHORT).show();
         }
 
     }
 
-    //Image Upload Methods
+    //Image ImageData Methods
     private File createImageFile() throws IOException {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
@@ -201,14 +207,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 @Override
                 public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
                     double progress = (100.0 * taskSnapshot.getBytesTransferred())/taskSnapshot.getTotalByteCount();
-                    System.out.println("Upload is " + progress + "% done");
+                    System.out.println("ImageData is " + progress + "% done");
                     progressBar.setProgress((int) progress);
 
                 }
             }).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
                 @Override
                 public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
-                    Toast.makeText(MainActivity.this,"Upload Finished",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this,"ImageData Finished",Toast.LENGTH_SHORT).show();
                     progressBar.setProgress(0);
                 }
             }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
@@ -216,12 +222,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
                     Uri newUri = taskSnapshot.getDownloadUrl();
                     if(newUri != null){
-                        final Upload newUpload = new Upload(newUri.toString(),mAuth.getUid());
-                        getGPS(newUpload);
-                        getWifiNetworks(newUpload);
+                        final ImageData newImageData = new ImageData(newUri.toString(),mAuth.getUid());
+                        getGPS(newImageData);
+                        getWifiNetworks(newImageData);
                     }else{
-                        final Upload newUpload = new Upload("Database Error",mAuth.getUid());
-                        manageUpload(newUpload,mAuth.getUid());
+                        final ImageData newImageData = new ImageData("Database Error",mAuth.getUid());
+                        manageUpload(newImageData,mAuth.getUid());
                     }
 
                 }
@@ -230,14 +236,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
-    private void manageUpload(final Upload upload, final String mAuthID){
+    private void manageUpload(final ImageData imageData, final String mAuthID){
         db.child("maxImageIndex").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 final Integer maxIndex = dataSnapshot.getValue(Integer.class);
                 if (maxIndex != null) {
                     db.child("maxImageIndex").setValue(maxIndex + 1);
-                    db.child("images").child(Integer.toString(maxIndex + 1)).setValue(upload);
+                    db.child("images").child(Integer.toString(maxIndex + 1)).setValue(imageData);
+                    db.child("images").child(Integer.toString(maxIndex + 1)).child("userID").setValue(mAuthID);
                     db.child("users").child(mAuthID).child("completedImages").addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
                         public void onDataChange(DataSnapshot dataSnapshot) {
@@ -248,7 +255,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 uploads.add(maxIndex + 1);
                                 db.child("users").child(mAuthID).child("completedImages").setValue(uploads);
                             } else {
-                                Toast.makeText(MainActivity.this, "No Upload List Exists", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(MainActivity.this, "No ImageData List Exists", Toast.LENGTH_SHORT).show();
                             }
                         }
 
@@ -280,7 +287,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     Toast.makeText(MainActivity.this, "No Maximum Index Exists",Toast.LENGTH_SHORT).show();
                     return;
                 }
-                imageProcessing(1,maxIndex);
+                imageProcessing(maxIndex);
 
 
             }
@@ -292,46 +299,62 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
     }
 
-    private void imageProcessing(final int index, final int maxIndex){
+    private void imageProcessing(final int maxIndex){
         if(mAuth.getUid() != null) {
             db.child("users").child(mAuth.getUid()).child("completedImages").addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot dataSnapshot) {
-                    GenericTypeIndicator<List<Integer>> indexList = new GenericTypeIndicator<List<Integer>>() {
-                    };
+                    GenericTypeIndicator<List<Integer>> indexList = new GenericTypeIndicator<List<Integer>>() {};
                     List<Integer> completedIndexList = dataSnapshot.getValue(indexList);
-                    if (completedIndexList != null && completedIndexList.contains(index)) {
-                        int currentIndex = index + 1;
-                        imageProcessing(currentIndex, maxIndex);
-                    } else {
-                        if (index > maxIndex) {
-                            Toast.makeText(MainActivity.this, "All Images already checked", Toast.LENGTH_SHORT).show();
-                        } else if (completedIndexList == null) {
-                            Toast.makeText(MainActivity.this, "No existing index list", Toast.LENGTH_SHORT).show();
-                        } else {
-                            db.child("images").child(Integer.toString(index)).child("imageURL").addListenerForSingleValueEvent(new ValueEventListener() {
-                                @Override
-                                public void onDataChange(DataSnapshot dataSnapshot) {
-                                    String downloadURL = dataSnapshot.getValue(String.class);
-                                    if(downloadURL != null){
-                                        StorageReference httpsReference = storInst.getReferenceFromUrl(downloadURL);
-                                        Glide.with(MainActivity.this)
-                                                .using(new FirebaseImageLoader())
-                                                .load(httpsReference)
-                                                .into(mImageView);
-                                        checkButton.setVisibility(View.VISIBLE);
-                                    }else{
-                                        Toast.makeText(MainActivity.this,"Download URL does not Exist",Toast.LENGTH_SHORT).show();
-                                    }
-
-                                }
-
-                                @Override
-                                public void onCancelled(DatabaseError databaseError) {
-
-                                }
-                            });
+                    if (completedIndexList != null) {
+                        while (completedIndexList.contains(index)) {
+                            index = index + 1;
                         }
+                        if(index > maxIndex){
+                            Toast.makeText(MainActivity.this,"All images presented, Resetting Index",Toast.LENGTH_SHORT).show();
+                            index = 1;
+                            imageProcessing(maxIndex);
+                        }
+                        Toast.makeText(MainActivity.this,"Index Value: " + index,Toast.LENGTH_SHORT).show();
+                        db.child("images").child(Integer.toString(index)).addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(DataSnapshot dataSnapshot) {
+                                String imageURL  = dataSnapshot.child("imageURL").getValue(String.class);
+                                if (imageURL != null) {
+                                    StorageReference httpsReference = storInst.getReferenceFromUrl(imageURL);
+                                    Glide.with(MainActivity.this)
+                                            .using(new FirebaseImageLoader())
+                                            .load(httpsReference)
+                                            .into(mImageView);
+
+                                } else {
+                                    Toast.makeText(MainActivity.this, "Download URL does not Exist", Toast.LENGTH_SHORT).show();
+                                }
+
+                                Double imageLatitude = dataSnapshot.child("latitude").getValue(Double.class);
+                                if(imageLatitude != null){
+                                    currentImageData.setLatitude(imageLatitude);
+                                }
+
+                                Double imageLongitude = dataSnapshot.child("longitude").getValue(Double.class);
+                                if(imageLongitude != null){
+                                    currentImageData.setLongitude(imageLongitude);
+                                }
+
+                                GenericTypeIndicator<List<String>> list = new GenericTypeIndicator<List<String>>(){};
+                                List<String> wifiList = dataSnapshot.child("wifiNetworks").getValue(list);
+                                currentImageData.setWifiNetworks(wifiList);
+
+                                index = index + 1;
+                                checkButton.setVisibility(View.VISIBLE);
+
+                            }
+
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {}
+                        });
+                    } else{
+                        Toast.makeText(MainActivity.this,"Error: No Completed Index List",Toast.LENGTH_SHORT).show();
                     }
                 }
 
@@ -346,7 +369,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
     //getGps and Wifi Methods
-    private void getGPS(final Upload upload){
+    private void getGPS(final ImageData imageData){
         if(ActivityCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},REQUEST_LOCATION);
         }
@@ -355,13 +378,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     @Override
                     public void onComplete(@NonNull Task<Location> task) {
                         Location mLastLocation = task.getResult();
-                        upload.setLatitude(mLastLocation.getLatitude());
-                        upload.setLongitude(mLastLocation.getLongitude());
+                        imageData.setLatitude(mLastLocation.getLatitude());
+                        imageData.setLongitude(mLastLocation.getLongitude());
                     }
                 });
     }
 
-    private void getWifiNetworks(final Upload upload){
+    private void getWifiNetworks(final ImageData imageData){
         wifi.startScan();
         IntentFilter filter = new IntentFilter();
         filter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
@@ -374,8 +397,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 for(int i = 0; i < results.size(); i++){
                     connections.add(results.get(i).SSID + " "+ results.get(i).BSSID);
                 }
-                upload.setWifiNetworks(connections);
-                manageUpload(upload,upload.getUserUploadID());
+                imageData.setWifiNetworks(connections);
+                manageUpload(imageData, imageData.getUserID());
             }
         },filter);
     }
