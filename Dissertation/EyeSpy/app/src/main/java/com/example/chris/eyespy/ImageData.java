@@ -28,6 +28,8 @@ class ImageData implements Serializable{
         this.userID = userID;
         this.correctCheckCount = 0;
         this.skipCount = 0;
+        this.latitude = 0.0;
+        this.longitude = 0.0;
         this.wifiNetworks = new ArrayList<>();
     }
 
@@ -47,15 +49,15 @@ class ImageData implements Serializable{
         return this.skipCount;
     }
 
-    public double getLatitude(){
+    double getLatitude(){
         return this.latitude;
     }
 
-    public double getLongitude(){
+    double getLongitude(){
         return this.longitude;
     }
 
-    public List getWifiNetworks(){
+    List getWifiNetworks(){
         return this.wifiNetworks;
     }
 
@@ -70,5 +72,9 @@ class ImageData implements Serializable{
     void setWifiNetworks(List networkList){
         this.wifiNetworks = networkList;
     }
+
+    void setUserID(String userID){this.userID = userID;}
+
+
 
 }

@@ -19,6 +19,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.content.Intent;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -54,8 +55,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-
-
 
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
@@ -143,7 +142,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } else if(view == getImageButton){
             getImage();
         } else if(view == checkButton){
-            Toast.makeText(MainActivity.this, "GPS " + currentImageData.getLongitude(),Toast.LENGTH_SHORT).show();
+            ImageData playerData = new ImageData("player","player");
+            getGPS(playerData);
         }
 
     }
@@ -224,7 +224,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     if(newUri != null){
                         final ImageData newImageData = new ImageData(newUri.toString(),mAuth.getUid());
                         getGPS(newImageData);
-                        getWifiNetworks(newImageData);
                     }else{
                         final ImageData newImageData = new ImageData("Database Error",mAuth.getUid());
                         manageUpload(newImageData,mAuth.getUid());
@@ -244,7 +243,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if (maxIndex != null) {
                     db.child("maxImageIndex").setValue(maxIndex + 1);
                     db.child("images").child(Integer.toString(maxIndex + 1)).setValue(imageData);
+                    Toast.makeText(MainActivity.this,"ManageUpload :" + imageData.getLatitude(),Toast.LENGTH_SHORT).show();
+                    //Possible Problem
                     db.child("images").child(Integer.toString(maxIndex + 1)).child("userID").setValue(mAuthID);
+                    db.child("images").child(Integer.toString(maxIndex + 1)).child("latitude").setValue(imageData.getLatitude());
+                    db.child("images").child(Integer.toString(maxIndex + 1)).child("longitude").setValue(imageData.getLongitude());
+                    db.child("images").child(Integer.toString(maxIndex + 1)).child("wifiNetworks").setValue(imageData.getWifiNetworks());
                     db.child("users").child(mAuthID).child("completedImages").addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
                         public void onDataChange(DataSnapshot dataSnapshot) {
@@ -345,6 +349,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 List<String> wifiList = dataSnapshot.child("wifiNetworks").getValue(list);
                                 currentImageData.setWifiNetworks(wifiList);
 
+                                String imageUserID = dataSnapshot.child("userID").getValue(String.class);
+                                if(imageUserID != null){
+                                    currentImageData.setUserID(imageUserID);
+                                }
+
                                 index = index + 1;
                                 checkButton.setVisibility(View.VISIBLE);
 
@@ -380,6 +389,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         Location mLastLocation = task.getResult();
                         imageData.setLatitude(mLastLocation.getLatitude());
                         imageData.setLongitude(mLastLocation.getLongitude());
+                        getWifiNetworks(imageData);
                     }
                 });
     }
@@ -398,9 +408,34 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     connections.add(results.get(i).SSID + " "+ results.get(i).BSSID);
                 }
                 imageData.setWifiNetworks(connections);
-                manageUpload(imageData, imageData.getUserID());
+                if(imageData.getUserID().equals("player")){
+                    checkData(imageData);
+                }else{
+                    manageUpload(imageData, imageData.getUserID());
+                }
+
+
             }
         },filter);
+    }
+
+    //Check Method
+    public void checkData(ImageData playerData){
+        double wifiCount = 0.0;
+        for(int i = 0; i < currentImageData.getWifiNetworks().size();i++){
+            if(currentImageData.getWifiNetworks().contains(playerData.getWifiNetworks().get(i))){
+                wifiCount = wifiCount + 1.0;
+            }
+        }
+        if(wifiCount/currentImageData.getWifiNetworks().size() >= 0.5){
+            Toast.makeText(MainActivity.this,"Correct, Wifi",Toast.LENGTH_SHORT).show();
+        }
+        if(((double)Math.round(playerData.getLatitude() * 10000d) / 10000d) == ((double)Math.round(currentImageData.getLatitude() * 10000d) / 10000d)){
+            Toast.makeText(MainActivity.this,"Correct, Lat",Toast.LENGTH_SHORT).show();
+        }
+        if(((double)Math.round(playerData.getLongitude() * 10000d) / 10000d) == ((double)Math.round(currentImageData.getLongitude() * 10000d) / 10000d)){
+            Toast.makeText(MainActivity.this,"Correct, Long",Toast.LENGTH_SHORT).show();
+        }
     }
 
     //onClick Methods
