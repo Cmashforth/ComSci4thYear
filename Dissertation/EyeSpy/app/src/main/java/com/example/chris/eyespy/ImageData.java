@@ -16,7 +16,7 @@ class ImageData implements Serializable{
     private String imageURL;
     private String userID;
     private int correctCheckCount;
-    private int skipCount;
+    private int index;
     private double latitude;
     private double longitude;
     private List wifiNetworks;
@@ -27,7 +27,7 @@ class ImageData implements Serializable{
         this.imageURL = imageURL;
         this.userID = userID;
         this.correctCheckCount = 0;
-        this.skipCount = 0;
+        this.index = 0;
         this.latitude = 0.0;
         this.longitude = 0.0;
         this.wifiNetworks = new ArrayList<>();
@@ -45,8 +45,8 @@ class ImageData implements Serializable{
         return this.correctCheckCount;
     }
 
-    public int getSkipCount(){
-        return this.skipCount;
+    public int getIndex(){
+        return this.index;
     }
 
     double getLatitude(){
@@ -74,6 +74,8 @@ class ImageData implements Serializable{
     }
 
     void setUserID(String userID){this.userID = userID;}
+
+    void setIndex(int index){this.index = index;}
 
 
 

@@ -19,7 +19,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.content.Intent;
 import android.provider.MediaStore;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -72,7 +71,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private String mCurrentPhotoPath;
     private ProgressBar progressBar;
     private ImageData currentImageData;
-    private int index;
+    private int currentImageIndex;
 
     private DatabaseReference db;
     private StorageReference myStor;
@@ -103,7 +102,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mLocationClient = LocationServices.getFusedLocationProviderClient(this);
         wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         currentImageData = new ImageData();
-        index = 1;
+        currentImageIndex = 1;
 
     }
 
@@ -249,25 +248,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     db.child("images").child(Integer.toString(maxIndex + 1)).child("latitude").setValue(imageData.getLatitude());
                     db.child("images").child(Integer.toString(maxIndex + 1)).child("longitude").setValue(imageData.getLongitude());
                     db.child("images").child(Integer.toString(maxIndex + 1)).child("wifiNetworks").setValue(imageData.getWifiNetworks());
-                    db.child("users").child(mAuthID).child("completedImages").addListenerForSingleValueEvent(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(DataSnapshot dataSnapshot) {
-                            GenericTypeIndicator<List<Integer>> indexList = new GenericTypeIndicator<List<Integer>>() {
-                            };
-                            List<Integer> uploads = dataSnapshot.getValue(indexList);
-                            if (uploads != null) {
-                                uploads.add(maxIndex + 1);
-                                db.child("users").child(mAuthID).child("completedImages").setValue(uploads);
-                            } else {
-                                Toast.makeText(MainActivity.this, "No ImageData List Exists", Toast.LENGTH_SHORT).show();
-                            }
-                        }
-
-                        @Override
-                        public void onCancelled(DatabaseError databaseError) {
-
-                        }
-                    });
+                    addToCompleteList(mAuthID,maxIndex + 1);
                 }else{
                     Toast.makeText(MainActivity.this,"Max Integer Error",Toast.LENGTH_SHORT).show();
                 }
@@ -311,16 +292,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     GenericTypeIndicator<List<Integer>> indexList = new GenericTypeIndicator<List<Integer>>() {};
                     List<Integer> completedIndexList = dataSnapshot.getValue(indexList);
                     if (completedIndexList != null) {
-                        while (completedIndexList.contains(index)) {
-                            index = index + 1;
+                        while (completedIndexList.contains(currentImageIndex)) {
+                            currentImageIndex = currentImageIndex + 1;
                         }
-                        if(index > maxIndex){
+                        if(currentImageIndex > maxIndex){
                             Toast.makeText(MainActivity.this,"All images presented, Resetting Index",Toast.LENGTH_SHORT).show();
-                            index = 1;
-                            imageProcessing(maxIndex);
+                            currentImageIndex = 1;
+                            getImage();
                         }
-                        Toast.makeText(MainActivity.this,"Index Value: " + index,Toast.LENGTH_SHORT).show();
-                        db.child("images").child(Integer.toString(index)).addListenerForSingleValueEvent(new ValueEventListener() {
+                        Toast.makeText(MainActivity.this,"Index Value: " + currentImageIndex,Toast.LENGTH_SHORT).show();
+                        db.child("images").child(Integer.toString(currentImageIndex)).addListenerForSingleValueEvent(new ValueEventListener() {
                             @Override
                             public void onDataChange(DataSnapshot dataSnapshot) {
                                 String imageURL  = dataSnapshot.child("imageURL").getValue(String.class);
@@ -354,7 +335,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                     currentImageData.setUserID(imageUserID);
                                 }
 
-                                index = index + 1;
+                                currentImageData.setIndex(currentImageIndex);
+                                currentImageIndex = currentImageIndex + 1;
                                 checkButton.setVisibility(View.VISIBLE);
 
                             }
@@ -427,15 +409,79 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 wifiCount = wifiCount + 1.0;
             }
         }
-        if(wifiCount/currentImageData.getWifiNetworks().size() >= 0.5){
-            Toast.makeText(MainActivity.this,"Correct, Wifi",Toast.LENGTH_SHORT).show();
+        if(wifiCount/currentImageData.getWifiNetworks().size() >= 0.5 &&
+                ((double)Math.round(playerData.getLatitude() * 10000d) / 10000d) == ((double)Math.round(currentImageData.getLatitude() * 10000d) / 10000d) &&
+                ((double)Math.round(playerData.getLongitude() * 10000d) / 10000d) == ((double)Math.round(currentImageData.getLongitude() * 10000d) / 10000d)){
+
+            Toast.makeText(MainActivity.this,"Correct Location",Toast.LENGTH_SHORT).show();
         }
-        if(((double)Math.round(playerData.getLatitude() * 10000d) / 10000d) == ((double)Math.round(currentImageData.getLatitude() * 10000d) / 10000d)){
-            Toast.makeText(MainActivity.this,"Correct, Lat",Toast.LENGTH_SHORT).show();
-        }
-        if(((double)Math.round(playerData.getLongitude() * 10000d) / 10000d) == ((double)Math.round(currentImageData.getLongitude() * 10000d) / 10000d)){
-            Toast.makeText(MainActivity.this,"Correct, Long",Toast.LENGTH_SHORT).show();
-        }
+        addToCompleteList(mAuth.getUid(), currentImageData.getIndex());
+        pointsAllocation(currentImageData.getUserID(),1);
+        pointsAllocation(mAuth.getUid(),5);
+
+        db.child("images").child(Integer.toString(currentImageData.getIndex())).child("correctCheckCount").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                Integer count = dataSnapshot.getValue(Integer.class);
+                if(count != null){
+                    count = count + 1;
+                    db.child("images").child(Integer.toString(currentImageData.getIndex())).child("correctCheckCount").setValue(count);
+                }
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+
+        Toast.makeText(MainActivity.this,"Completed",Toast.LENGTH_SHORT).show();
+        getImage();
+
+    }
+
+    //Database Methods
+    public void addToCompleteList(final String userID, final int imageIndex){
+        db.child("users").child(userID).child("completedImages").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                GenericTypeIndicator<List<Integer>> indexList = new GenericTypeIndicator<List<Integer>>() {
+                };
+                List<Integer> uploads = dataSnapshot.getValue(indexList);
+                if (uploads != null) {
+                    uploads.add(imageIndex);
+                    db.child("users").child(userID).child("completedImages").setValue(uploads);
+                } else {
+                    Toast.makeText(MainActivity.this, "No ImageData List Exists", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+
+    }
+
+    public void pointsAllocation(final String playerID,final int value){
+        db.child("users").child(playerID).child("points").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                Integer points = dataSnapshot.getValue(Integer.class);
+                if(points != null){
+                    points = points + value;
+                    db.child("users").child(playerID).child("points").setValue(points);
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+
     }
 
     //onClick Methods
