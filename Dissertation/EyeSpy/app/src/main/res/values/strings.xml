@@ -13,6 +13,7 @@
     <string name="SignUpButtonText">Sign Up</string>
     <string name="CloseButtonText">Close</string>
     <string name="SkipButtonText">Check Location</string>
+    <string name="UploadText">Upload In Progress</string>
 
 
 </resources>

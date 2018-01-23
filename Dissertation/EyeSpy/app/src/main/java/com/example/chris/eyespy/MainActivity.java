@@ -63,7 +63,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private ImageView mImageView;
     private Button camButton;
-    private TextView logInMessage;
+    private TextView topMessage;
     private Button getImageButton;
     private Button signOutButton;
     private Button checkButton;
@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
 
         camButton = findViewById(R.id.button_image);
-        logInMessage = findViewById(R.id.LogInMessage);
+        topMessage = findViewById(R.id.topMessage);
         signOutButton = findViewById(R.id.SignOutButton);
         progressBar = findViewById(R.id.uploadProgress);
         getImageButton = findViewById(R.id.getImage);
@@ -112,18 +112,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onStart();
         if(mAuth.getCurrentUser() == null){
             signUserOut();
-        }else if(mAuth.getUid() != null){
-            db.child("users").child(mAuth.getUid()).child("username").addListenerForSingleValueEvent(new ValueEventListener() {
-                @Override
-                public void onDataChange(DataSnapshot dataSnapshot) {
-                    logInMessage.setText(dataSnapshot.getValue(String.class));
-                }
-
-                @Override
-                public void onCancelled(DatabaseError databaseError) {
-
-                }
-            });
         }
     }
 
@@ -134,14 +122,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             try{
                 takePicture();
             } catch(IOException ex){
-                Toast.makeText(MainActivity.this, "onClick Toast",Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "Camera Error",Toast.LENGTH_SHORT).show();
             }
         } else if(view == signOutButton){
             signUserOut();
         } else if(view == getImageButton){
             getImage();
         } else if(view == checkButton){
-            ImageData playerData = new ImageData("player","player");
+            ImageData playerData = new ImageData(null,null);
+            buttonSettings(false);
             getGPS(playerData);
         }
 
@@ -162,7 +151,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return image;
         }catch(IOException ex){
             ex.printStackTrace();
-            Toast.makeText(MainActivity.this, "Temp Toast",Toast.LENGTH_SHORT).show();
+            Toast.makeText(MainActivity.this, "File Creation Error",Toast.LENGTH_SHORT).show();
             return null;
         }
 
@@ -191,8 +180,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onActivityResult(int requestCode, int resultCode, Intent data){
         super.onActivityResult(requestCode,resultCode,data);
         if(requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK){
+            buttonSettings(false);
+            topMessage.setText(R.string.UploadText);
             Uri imageUri = Uri.parse(mCurrentPhotoPath);
-
             StorageReference uploadRef = myStor.child("images/"+imageUri.getLastPathSegment());
             UploadTask uploadTask = uploadRef.putFile(imageUri);
             uploadTask.addOnFailureListener(new OnFailureListener() {
@@ -200,20 +190,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 @Override
                 public void onFailure(@NonNull Exception e) {
-                    Toast.makeText(MainActivity.this,"Failed",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this,"Failed Upload",Toast.LENGTH_SHORT).show();
                 }
             }).addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
                 @Override
                 public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
                     double progress = (100.0 * taskSnapshot.getBytesTransferred())/taskSnapshot.getTotalByteCount();
-                    System.out.println("ImageData is " + progress + "% done");
                     progressBar.setProgress((int) progress);
-
                 }
             }).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
                 @Override
                 public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
-                    Toast.makeText(MainActivity.this,"ImageData Finished",Toast.LENGTH_SHORT).show();
                     progressBar.setProgress(0);
                 }
             }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
@@ -224,8 +211,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         final ImageData newImageData = new ImageData(newUri.toString(),mAuth.getUid());
                         getGPS(newImageData);
                     }else{
-                        final ImageData newImageData = new ImageData("Database Error",mAuth.getUid());
-                        manageUpload(newImageData,mAuth.getUid());
+                        //final ImageData newImageData = new ImageData("Error",mAuth.getUid());
+                        //manageUpload(newImageData,mAuth.getUid());
                     }
 
                 }
@@ -240,10 +227,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onDataChange(DataSnapshot dataSnapshot) {
                 final Integer maxIndex = dataSnapshot.getValue(Integer.class);
                 if (maxIndex != null) {
+                    imageData.setIndex(maxIndex + 1);
                     db.child("maxImageIndex").setValue(maxIndex + 1);
                     db.child("images").child(Integer.toString(maxIndex + 1)).setValue(imageData);
-                    Toast.makeText(MainActivity.this,"ManageUpload :" + imageData.getLatitude(),Toast.LENGTH_SHORT).show();
-                    //Possible Problem
                     db.child("images").child(Integer.toString(maxIndex + 1)).child("userID").setValue(mAuthID);
                     db.child("images").child(Integer.toString(maxIndex + 1)).child("latitude").setValue(imageData.getLatitude());
                     db.child("images").child(Integer.toString(maxIndex + 1)).child("longitude").setValue(imageData.getLongitude());
@@ -259,6 +245,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             }
         });
+
     }
 
 
@@ -297,8 +284,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         }
                         if(currentImageIndex > maxIndex){
                             Toast.makeText(MainActivity.this,"All images presented, Resetting Index",Toast.LENGTH_SHORT).show();
-                            currentImageIndex = 1;
-                            getImage();
+                            currentImageIndex = 0;
                         }
                         Toast.makeText(MainActivity.this,"Index Value: " + currentImageIndex,Toast.LENGTH_SHORT).show();
                         db.child("images").child(Integer.toString(currentImageIndex)).addListenerForSingleValueEvent(new ValueEventListener() {
@@ -341,8 +327,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                             }
 
-                        @Override
-                        public void onCancelled(DatabaseError databaseError) {}
+                            @Override
+                            public void onCancelled(DatabaseError databaseError) {}
                         });
                     } else{
                         Toast.makeText(MainActivity.this,"Error: No Completed Index List",Toast.LENGTH_SHORT).show();
@@ -358,7 +344,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-
     //getGps and Wifi Methods
     private void getGPS(final ImageData imageData){
         if(ActivityCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
@@ -371,12 +356,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         Location mLastLocation = task.getResult();
                         imageData.setLatitude(mLastLocation.getLatitude());
                         imageData.setLongitude(mLastLocation.getLongitude());
-                        getWifiNetworks(imageData);
+                        scanWifiNetworks(imageData);
                     }
                 });
     }
 
-    private void getWifiNetworks(final ImageData imageData){
+    private void scanWifiNetworks(final ImageData imageData){ //needs fixing
         wifi.startScan();
         IntentFilter filter = new IntentFilter();
         filter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
@@ -390,7 +375,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     connections.add(results.get(i).SSID + " "+ results.get(i).BSSID);
                 }
                 imageData.setWifiNetworks(connections);
-                if(imageData.getUserID().equals("player")){
+                if(imageData.getUserID() == null){
                     checkData(imageData);
                 }else{
                     manageUpload(imageData, imageData.getUserID());
@@ -411,34 +396,35 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         if(wifiCount/currentImageData.getWifiNetworks().size() >= 0.5 &&
                 ((double)Math.round(playerData.getLatitude() * 10000d) / 10000d) == ((double)Math.round(currentImageData.getLatitude() * 10000d) / 10000d) &&
-                ((double)Math.round(playerData.getLongitude() * 10000d) / 10000d) == ((double)Math.round(currentImageData.getLongitude() * 10000d) / 10000d)){
+                ((double)Math.round(playerData.getLongitude() * 10000d) / 10000d) == ((double)Math.round(currentImageData.getLongitude() * 10000d) / 10000d)) {
 
-            Toast.makeText(MainActivity.this,"Correct Location",Toast.LENGTH_SHORT).show();
-        }
-        addToCompleteList(mAuth.getUid(), currentImageData.getIndex());
-        pointsAllocation(currentImageData.getUserID(),1);
-        pointsAllocation(mAuth.getUid(),5);
+            addToCompleteList(mAuth.getUid(), currentImageData.getIndex());
+            pointsAllocation(currentImageData.getUserID(), 1);
+            pointsAllocation(mAuth.getUid(), 5);
 
-        db.child("images").child(Integer.toString(currentImageData.getIndex())).child("correctCheckCount").addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                Integer count = dataSnapshot.getValue(Integer.class);
-                if(count != null){
-                    count = count + 1;
-                    db.child("images").child(Integer.toString(currentImageData.getIndex())).child("correctCheckCount").setValue(count);
+            db.child("images").child(Integer.toString(currentImageData.getIndex())).child("correctCheckCount").addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    Integer count = dataSnapshot.getValue(Integer.class);
+                    if (count != null) {
+                        count = count + 1;
+                        db.child("images").child(Integer.toString(currentImageData.getIndex())).child("correctCheckCount").setValue(count);
+                    }
+
                 }
 
-            }
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
 
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
+                }
+            });
 
-            }
-        });
-
-        Toast.makeText(MainActivity.this,"Completed",Toast.LENGTH_SHORT).show();
-        getImage();
-
+            topMessage.setText("Correct");
+            getImage();
+        } else{
+            topMessage.setText("Incorrect");
+        }
+        buttonSettings(true);
     }
 
     //Database Methods
@@ -462,7 +448,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             }
         });
-
+        buttonSettings(true);
     }
 
     public void pointsAllocation(final String playerID,final int value){
@@ -489,6 +475,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mAuth.signOut();
         Intent exitIntent = new Intent(this,StartUpActivity.class);
         startActivity(exitIntent);
+    }
+
+    //Display methods
+    private void buttonSettings(boolean setting){
+        camButton.setEnabled(setting);
+        getImageButton.setEnabled(setting);
+        checkButton.setEnabled(setting);
+        signOutButton.setEnabled(setting);
     }
 
 
