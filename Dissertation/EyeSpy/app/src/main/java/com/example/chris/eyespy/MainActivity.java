@@ -104,6 +104,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         currentImageData = new ImageData();
         currentImageIndex = 1;
 
+        nameDisplay();
+
     }
 
     //Methods that override inbuilt methods
@@ -135,6 +137,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
     }
+
 
     //Image ImageData Methods
     private File createImageFile() throws IOException {
@@ -181,7 +184,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onActivityResult(requestCode,resultCode,data);
         if(requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK){
             buttonSettings(false);
-            topMessage.setText(R.string.UploadText);
+            topMessage.setText(R.string.UploadProgress);
             Uri imageUri = Uri.parse(mCurrentPhotoPath);
             StorageReference uploadRef = myStor.child("images/"+imageUri.getLastPathSegment());
             UploadTask uploadTask = uploadRef.putFile(imageUri);
@@ -211,8 +214,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         final ImageData newImageData = new ImageData(newUri.toString(),mAuth.getUid());
                         getGPS(newImageData);
                     }else{
-                        //final ImageData newImageData = new ImageData("Error",mAuth.getUid());
-                        //manageUpload(newImageData,mAuth.getUid());
+                        topMessage.setText(R.string.UploadError);
+                        buttonSettings(true);
                     }
 
                 }
@@ -234,15 +237,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     db.child("images").child(Integer.toString(maxIndex + 1)).child("latitude").setValue(imageData.getLatitude());
                     db.child("images").child(Integer.toString(maxIndex + 1)).child("longitude").setValue(imageData.getLongitude());
                     db.child("images").child(Integer.toString(maxIndex + 1)).child("wifiNetworks").setValue(imageData.getWifiNetworks());
-                    addToCompleteList(mAuthID,maxIndex + 1);
+                    addToCompleteList(mAuthID,maxIndex + 1,true);
                 }else{
                     Toast.makeText(MainActivity.this,"Max Integer Error",Toast.LENGTH_SHORT).show();
+                    buttonSettings(true);
+                    nameDisplay();
                 }
             }
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-
+                buttonSettings(true);
+                nameDisplay();
             }
         });
 
@@ -251,6 +257,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     //Image Retrieval Methods
     private void getImage(){
+        buttonSettings(false);
+        topMessage.setText(R.string.ImageMessage);
         db.child("maxImageIndex").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
@@ -261,12 +269,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 imageProcessing(maxIndex);
 
-
             }
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-
+                buttonSettings(true);
+                nameDisplay();
             }
         });
     }
@@ -286,7 +294,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             Toast.makeText(MainActivity.this,"All images presented, Resetting Index",Toast.LENGTH_SHORT).show();
                             currentImageIndex = 0;
                         }
-                        Toast.makeText(MainActivity.this,"Index Value: " + currentImageIndex,Toast.LENGTH_SHORT).show();
                         db.child("images").child(Integer.toString(currentImageIndex)).addListenerForSingleValueEvent(new ValueEventListener() {
                             @Override
                             public void onDataChange(DataSnapshot dataSnapshot) {
@@ -328,7 +335,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             }
 
                             @Override
-                            public void onCancelled(DatabaseError databaseError) {}
+                            public void onCancelled(DatabaseError databaseError) {
+
+                            }
                         });
                     } else{
                         Toast.makeText(MainActivity.this,"Error: No Completed Index List",Toast.LENGTH_SHORT).show();
@@ -337,11 +346,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 @Override
                 public void onCancelled(DatabaseError databaseError) {
+
                 }
             });
         }else{
             Toast.makeText(MainActivity.this,"No User Logged In",Toast.LENGTH_SHORT).show();
+            ;
         }
+        buttonSettings(true);
+        nameDisplay();
     }
 
     //getGps and Wifi Methods
@@ -362,43 +375,57 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void scanWifiNetworks(final ImageData imageData){ //needs fixing
-        wifi.startScan();
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
+        if(wifi.getWifiState() == WifiManager.WIFI_STATE_ENABLED){
+            IntentFilter filter = new IntentFilter();
+            filter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
 
-        registerReceiver(new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                List<ScanResult> results = wifi.getScanResults();
-                ArrayList<String> connections = new ArrayList<>();
-                for(int i = 0; i < results.size(); i++){
-                    connections.add(results.get(i).SSID + " "+ results.get(i).BSSID);
+            registerReceiver(new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    List<ScanResult> results = wifi.getScanResults();
+                    ArrayList<String> connections = new ArrayList<>();
+                    for(int i = 0; i < results.size(); i++){
+                        connections.add(results.get(i).SSID + " "+ results.get(i).BSSID);
+                    }
+                    imageData.setWifiNetworks(connections);
+                    if(imageData.getUserID() == null){
+                        checkData(imageData);
+                    }else{
+                        manageUpload(imageData,imageData.getUserID());
+                    }
                 }
-                imageData.setWifiNetworks(connections);
-                if(imageData.getUserID() == null){
-                    checkData(imageData);
-                }else{
-                    manageUpload(imageData, imageData.getUserID());
-                }
-
-
-            }
-        },filter);
+            },filter);
+            wifi.startScan();
+        }
     }
+
+
 
     //Check Method
     public void checkData(ImageData playerData){
         double wifiCount = 0.0;
-        for(int i = 0; i < currentImageData.getWifiNetworks().size();i++){
-            if(currentImageData.getWifiNetworks().contains(playerData.getWifiNetworks().get(i))){
-                wifiCount = wifiCount + 1.0;
+        if(playerData.getWifiNetworks() == null){
+            getGPS(playerData);
+        }
+        if(currentImageData.getWifiNetworks().size() > playerData.getWifiNetworks().size()){
+            for(int i = 0; i < playerData.getWifiNetworks().size(); i++){
+                if(currentImageData.getWifiNetworks().contains(playerData.getWifiNetworks().get(i))){
+                    wifiCount = wifiCount + 1.0;
+                }
             }
+        }else{
+            for(int i = 0; i < currentImageData.getWifiNetworks().size();i++){
+                if(playerData.getWifiNetworks().contains(currentImageData.getWifiNetworks().get(i))){
+                    wifiCount = wifiCount + 1.0;
+                }
+            }
+
         }
         if(wifiCount/currentImageData.getWifiNetworks().size() >= 0.5 &&
                 ((double)Math.round(playerData.getLatitude() * 10000d) / 10000d) == ((double)Math.round(currentImageData.getLatitude() * 10000d) / 10000d) &&
                 ((double)Math.round(playerData.getLongitude() * 10000d) / 10000d) == ((double)Math.round(currentImageData.getLongitude() * 10000d) / 10000d)) {
 
-            addToCompleteList(mAuth.getUid(), currentImageData.getIndex());
+            addToCompleteList(mAuth.getUid(), currentImageData.getIndex(),false);
             pointsAllocation(currentImageData.getUserID(), 1);
             pointsAllocation(mAuth.getUid(), 5);
 
@@ -412,23 +439,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }
 
                 }
-
                 @Override
                 public void onCancelled(DatabaseError databaseError) {
-
                 }
             });
-
-            topMessage.setText("Correct");
+            topMessage.setText(R.string.CorrectMessage);
             getImage();
         } else{
-            topMessage.setText("Incorrect");
+            topMessage.setText(R.string.InCorrectMessage);
         }
         buttonSettings(true);
+        nameDisplay();
     }
 
     //Database Methods
-    public void addToCompleteList(final String userID, final int imageIndex){
+    public void addToCompleteList(final String userID, final int imageIndex, boolean processEnd){
         db.child("users").child(userID).child("completedImages").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
@@ -448,7 +473,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             }
         });
-        buttonSettings(true);
+        if(processEnd){
+            buttonSettings(true);
+            nameDisplay();
+        }
+
+
     }
 
     public void pointsAllocation(final String playerID,final int value){
@@ -483,6 +513,38 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         getImageButton.setEnabled(setting);
         checkButton.setEnabled(setting);
         signOutButton.setEnabled(setting);
+    }
+
+    private void nameDisplay(){
+        if(mAuth.getUid() != null){
+            db.child("users").child(mAuth.getUid()).child("username").addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    final String message = dataSnapshot.getValue(String.class);
+                    db.child("users").child(mAuth.getUid()).child("points").addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot) {
+                            Integer numPoints = dataSnapshot.getValue(Integer.class);
+                            if(numPoints != null){
+                                topMessage.setText(message + ": " + numPoints.toString() + " Points");
+                            } else{
+                                topMessage.setText(message);
+                            }
+                        }
+
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+
+                        }
+                    });
+                }
+
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
+
+                }
+            });
+        }
     }
 
 

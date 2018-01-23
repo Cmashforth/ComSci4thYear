@@ -13,7 +13,12 @@
     <string name="SignUpButtonText">Sign Up</string>
     <string name="CloseButtonText">Close</string>
     <string name="SkipButtonText">Check Location</string>
-    <string name="UploadText">Upload In Progress</string>
+    <string name="UploadProgress">Upload In Progress</string>
+    <string name="UploadComplete">Upload Finished</string>
+    <string name="UploadError">Upload Error</string>
+    <string name="CorrectMessage">Correct, 5 points allocated</string>
+    <string name="InCorrectMessage">Incorrect Location</string>
+    <string name="ImageMessage">Retrieving Image</string>
 
 
 </resources>
