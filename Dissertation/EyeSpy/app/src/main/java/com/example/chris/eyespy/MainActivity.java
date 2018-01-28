@@ -19,7 +19,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.content.Intent;
 import android.provider.MediaStore;
-import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -82,6 +81,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private FusedLocationProviderClient mLocationClient;
     private WifiManager wifi;
 
+    //Methods that override inbuilt methods
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -109,7 +109,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
-    //Methods that override inbuilt methods
     @Override
     public void onStart(){
         super.onStart();
@@ -117,8 +116,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             signUserOut();
         }
     }
-
-
+    
     @Override
     public void onClick(View view){
         if(view  == camButton){
@@ -173,6 +171,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     Uri outputFileUri = FileProvider.getUriForFile(MainActivity.this,BuildConfig.APPLICATION_ID + ".provider",createImageFile());
                     takePic.putExtra(MediaStore.EXTRA_OUTPUT,outputFileUri);
                     startActivityForResult(takePic,REQUEST_TAKE_PHOTO);
+                } else{
+                    Toast.makeText(MainActivity.this,"Image Capture Error, null values",Toast.LENGTH_SHORT).show();
                 }
             } catch(IOException ex){
                 Toast.makeText(MainActivity.this, "File Error, Cannot Access File",Toast.LENGTH_SHORT).show();
@@ -190,8 +190,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             StorageReference uploadRef = myStor.child("images/"+imageUri.getLastPathSegment());
             UploadTask uploadTask = uploadRef.putFile(imageUri);
             uploadTask.addOnFailureListener(new OnFailureListener() {
-
-
+                
                 @Override
                 public void onFailure(@NonNull Exception e) {
                     Toast.makeText(MainActivity.this,"Upload Error, Failed Upload",Toast.LENGTH_SHORT).show();
@@ -219,9 +218,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         buttonSettings(true);
                         nameDisplay();
                     }
-
                 }
             });
+        } else{
+            Toast.makeText(MainActivity.this,"Camera Error, Incorrect Request Codes",Toast.LENGTH_SHORT).show();
         }
 
     }
@@ -273,13 +273,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     return;
                 }
                 imageProcessing(maxIndex);
-
             }
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
                 buttonSettings(true);
                 nameDisplay();
+                Toast.makeText(MainActivity.this, "Database Error, Retreival Cancelled", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -296,8 +296,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             currentImageIndex = currentImageIndex + 1;
                         }
                         if(currentImageIndex > maxIndex){
-                            Toast.makeText(MainActivity.this,"All images presented, Resetting Index",Toast.LENGTH_SHORT).show();
+                            Toast.makeText(MainActivity.this,"All images presented",Toast.LENGTH_SHORT).show();
                             currentImageIndex = 0;
+                            return;
+                        }
+                        if(currentImageIndex == 0){
+                            currentImageIndex = 1;
+                            return;
                         }
                         db.child("images").child(Integer.toString(currentImageIndex)).addListenerForSingleValueEvent(new ValueEventListener() {
                             @Override
@@ -341,7 +346,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                             @Override
                             public void onCancelled(DatabaseError databaseError) {
-
+                                Toast.makeText(MainActivity.this,"Database Error, Image Retrieval Cancelled",Toast.LENGTH_SHORT).show();
                             }
                         });
                     } else{
@@ -351,7 +356,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 @Override
                 public void onCancelled(DatabaseError databaseError) {
-
+                    Toast.makeText(MainActivity.this,"Database Error, Image Retrieval Cancelled",Toast.LENGTH_SHORT).show();
                 }
             });
         }else{
@@ -378,11 +383,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 });
     }
 
-    private void scanWifiNetworks(final ImageData imageData){ //needs fixing
+    private void scanWifiNetworks(final ImageData imageData){
         if(wifi.getWifiState() == WifiManager.WIFI_STATE_ENABLED){
             IntentFilter filter = new IntentFilter();
             filter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
-
             registerReceiver(new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
@@ -402,8 +406,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             wifi.startScan();
         }
     }
-
-
 
     //Check Method
     public void checkData(ImageData playerData){
@@ -440,11 +442,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     if (count != null) {
                         count = count + 1;
                         db.child("images").child(Integer.toString(currentImageData.getIndex())).child("correctCheckCount").setValue(count);
+                    }else{
+                        Toast.makeText(MainActivity.this, "Database Error, Correct Check does not Exist", Toast.LENGTH_SHORT).show();
                     }
 
                 }
                 @Override
                 public void onCancelled(DatabaseError databaseError) {
+                    Toast.makeText(MainActivity.this, "Database Error, Checking Cancelled", Toast.LENGTH_SHORT).show();
                 }
             });
             topMessage.setText(R.string.CorrectMessage);
@@ -475,6 +480,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
+                Toast.makeText(MainActivity.this, "Database Error, Process Cancelled", Toast.LENGTH_SHORT).show();
 
             }
         });
@@ -495,12 +501,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if(points != null){
                     points = points + value;
                     db.child("users").child(playerID).child("points").setValue(points);
+                }else{
+                    Toast.makeText(MainActivity.this, "Database Error, User Points Does Not Exist", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-
+                Toast.makeText(MainActivity.this,"Database Error, Points Allocation Cancelled",Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -534,22 +542,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             if(numPoints != null){
                                 topMessage.setText(message + ": " + numPoints.toString() + " Points");
                             } else{
+                                Toast.makeText(MainActivity.this, "Database Error, User Point Value Does Not Exist", Toast.LENGTH_SHORT).show();
                                 topMessage.setText(message);
                             }
                         }
 
                         @Override
                         public void onCancelled(DatabaseError databaseError) {
-
+                            Toast.makeText(MainActivity.this, "Database Error, Display Cancelled", Toast.LENGTH_SHORT).show();
                         }
                     });
                 }
 
                 @Override
                 public void onCancelled(DatabaseError databaseError) {
-
+                    Toast.makeText(MainActivity.this, "Database Error, Display Cancelled", Toast.LENGTH_SHORT).show();
                 }
             });
+        } else{
+            Toast.makeText(MainActivity.this, "Database Error, User Account Does Not Exist", Toast.LENGTH_SHORT).show();
         }
     }
 

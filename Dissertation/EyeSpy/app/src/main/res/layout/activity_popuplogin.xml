@@ -11,7 +11,7 @@
         android:layout_height="50dp"
         android:layout_width="match_parent"
         android:text="@string/LogInPopupTitle"
-        android:textSize="35sp"
+        android:textSize="30sp"
         android:layout_marginStart="10dp"
         android:id="@+id/LoginText"
         />

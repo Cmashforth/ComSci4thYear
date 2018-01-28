@@ -5,9 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -81,12 +79,11 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
                                 db.child("users").child(user.getUid()).child("completedImages").setValue(startUpload);
                                 onClick(null);
                             } else{
-                                Toast.makeText(LogInActivity.this,"User Databasing Error",Toast.LENGTH_SHORT).show();
+                                Toast.makeText(LogInActivity.this,"Authentication Error, User Account Does Not Exist ",Toast.LENGTH_SHORT).show();
                             }
 
                         }else{
-                            Log.w(TAG, "createUserWithEmail:failure", task.getException());
-                            Toast.makeText(LogInActivity.this, "Failed Sign Up", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(LogInActivity.this, "Authentication Error, Account Creation Failed", Toast.LENGTH_SHORT).show();
                         }
 
                     }
@@ -105,8 +102,7 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
                         if(task.isSuccessful()){
                             onClick(null);
                         }else{
-                            Log.w(TAG, "signInWithEmail:failure", task.getException());
-                            Toast.makeText(LogInActivity.this, "Failed Log In",Toast.LENGTH_SHORT).show();
+                            Toast.makeText(LogInActivity.this, "Authentication Error, Login Failed",Toast.LENGTH_SHORT).show();
                         }
                     }
                 });
@@ -155,9 +151,5 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
             startActivity(changePageIntent);
         }
     }
-
-
-
-
 
 }
