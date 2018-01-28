@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context="com.example.chris.eyespy.MainActivity">
 
     <TextView
@@ -36,11 +37,10 @@
             android:layout_width="wrap_content"
             android:text="@string/CameraButtonText"
             android:onClick="onClick"
-            android:layout_marginTop="20dp"
-            android:layout_marginStart="11dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginRight="5dp"
             android:layout_below="@+id/image"
-            android:layout_alignStart="@+id/image"
-            android:layout_marginRight="5dp"/>
+            android:layout_alignStart="@+id/image" />
 
         <Button
             android:id="@+id/SignOutButton"
@@ -59,18 +59,19 @@
         android:text="@string/GetImageButtonText"
         android:onClick="onClick"
         android:layout_alignTop="@+id/checkButton"
-        android:layout_alignEnd="@+id/image" />
+        android:layout_alignParentEnd="true" />
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="48dp"
-        android:text="@string/SkipButtonText"
+        android:text="@string/CheckButtonText"
         android:textSize="12sp"
         android:id="@+id/checkButton"
         android:visibility="invisible"
         android:onClick="onClick"
-        android:layout_above="@+id/SignOutButton"
-        android:layout_centerHorizontal="true" />
+        android:layout_alignBaseline="@+id/button_image"
+        android:layout_alignBottom="@+id/button_image"
+        android:layout_toStartOf="@+id/getImage" />
 
 
 

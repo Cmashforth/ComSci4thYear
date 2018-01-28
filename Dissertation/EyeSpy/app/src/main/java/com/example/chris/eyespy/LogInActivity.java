@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -34,7 +35,6 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
     private EditText usernameField;
     private Button loginButton;
     private Button signupButton;
-    private Button closeButton;
 
     private FirebaseAuth mAuth;
     private DatabaseReference db;
@@ -50,11 +50,17 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
         usernameField = findViewById(R.id.UserName);
         loginButton = findViewById(R.id.LogInButton);
         signupButton = findViewById(R.id.SignUpButton);
-        closeButton = findViewById(R.id.CloseButton);
 
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseDatabase.getInstance().getReference();
+    }
 
+    @Override
+    public void onStart(){
+        super.onStart();
+        if(mAuth.getCurrentUser() != null){
+            onClick(null);
+        }
     }
 
     private void createAccount(String email,String password){
@@ -73,7 +79,7 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
                                 db.child("users").child(user.getUid()).setValue(newUser);
                                 List<Integer> startUpload = new ArrayList<>(Collections.singletonList(0));
                                 db.child("users").child(user.getUid()).child("completedImages").setValue(startUpload);
-                                onClick(closeButton);
+                                onClick(null);
                             } else{
                                 Toast.makeText(LogInActivity.this,"User Databasing Error",Toast.LENGTH_SHORT).show();
                             }
@@ -97,7 +103,7 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if(task.isSuccessful()){
-                            onClick(closeButton);
+                            onClick(null);
                         }else{
                             Log.w(TAG, "signInWithEmail:failure", task.getException());
                             Toast.makeText(LogInActivity.this, "Failed Log In",Toast.LENGTH_SHORT).show();
@@ -144,9 +150,8 @@ public class LogInActivity extends AppCompatActivity implements View.OnClickList
         }
         else if(v == loginButton){
             signIn(emailField.getText().toString(),passwordField.getText().toString());
-        }
-        else if(v == closeButton){
-            Intent changePageIntent = new Intent(this,StartUpActivity.class);
+        }else{
+            Intent changePageIntent = new Intent(this,MainActivity.class);
             startActivity(changePageIntent);
         }
     }

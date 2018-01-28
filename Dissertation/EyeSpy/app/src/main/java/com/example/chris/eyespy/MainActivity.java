@@ -19,6 +19,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.content.Intent;
 import android.provider.MediaStore;
+import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -124,7 +125,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             try{
                 takePicture();
             } catch(IOException ex){
-                Toast.makeText(MainActivity.this, "Camera Error",Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "Camera Error, Cannot Access Camera",Toast.LENGTH_SHORT).show();
             }
         } else if(view == signOutButton){
             signUserOut();
@@ -139,7 +140,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
 
-    //Image ImageData Methods
+    //Image Upload Methods
     private File createImageFile() throws IOException {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
@@ -154,7 +155,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return image;
         }catch(IOException ex){
             ex.printStackTrace();
-            Toast.makeText(MainActivity.this, "File Creation Error",Toast.LENGTH_SHORT).show();
+            Toast.makeText(MainActivity.this, "File Error, File Creation Error",Toast.LENGTH_SHORT).show();
             return null;
         }
 
@@ -174,7 +175,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     startActivityForResult(takePic,REQUEST_TAKE_PHOTO);
                 }
             } catch(IOException ex){
-                Toast.makeText(MainActivity.this, "Can't Create File",Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "File Error, Cannot Access File",Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -193,7 +194,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 @Override
                 public void onFailure(@NonNull Exception e) {
-                    Toast.makeText(MainActivity.this,"Failed Upload",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this,"Upload Error, Failed Upload",Toast.LENGTH_SHORT).show();
                 }
             }).addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
                 @Override
@@ -214,8 +215,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         final ImageData newImageData = new ImageData(newUri.toString(),mAuth.getUid());
                         getGPS(newImageData);
                     }else{
-                        topMessage.setText(R.string.UploadError);
+                        Toast.makeText(MainActivity.this,"Upload Error, No Download URL For File",Toast.LENGTH_SHORT).show();
                         buttonSettings(true);
+                        nameDisplay();
                     }
 
                 }
@@ -239,7 +241,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     db.child("images").child(Integer.toString(maxIndex + 1)).child("wifiNetworks").setValue(imageData.getWifiNetworks());
                     addToCompleteList(mAuthID,maxIndex + 1,true);
                 }else{
-                    Toast.makeText(MainActivity.this,"Max Integer Error",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this,"Database Error, Cannot Retrieve Maximum Index",Toast.LENGTH_SHORT).show();
                     buttonSettings(true);
                     nameDisplay();
                 }
@@ -247,6 +249,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
+                Toast.makeText(MainActivity.this,"Upload Cancelled",Toast.LENGTH_SHORT).show();
                 buttonSettings(true);
                 nameDisplay();
             }
@@ -264,7 +267,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onDataChange(DataSnapshot dataSnapshot) {
                 Integer maxIndex = dataSnapshot.getValue(Integer.class);
                 if(maxIndex == null){
-                    Toast.makeText(MainActivity.this, "No Maximum Index Exists",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, "Database Error, No Maximum Index Exists",Toast.LENGTH_SHORT).show();
+                    buttonSettings(true);
+                    nameDisplay();
                     return;
                 }
                 imageProcessing(maxIndex);
@@ -306,7 +311,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                             .into(mImageView);
 
                                 } else {
-                                    Toast.makeText(MainActivity.this, "Download URL does not Exist", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(MainActivity.this, "Download Error: Download URL does not Exist", Toast.LENGTH_SHORT).show();
                                 }
 
                                 Double imageLatitude = dataSnapshot.child("latitude").getValue(Double.class);
@@ -340,7 +345,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             }
                         });
                     } else{
-                        Toast.makeText(MainActivity.this,"Error: No Completed Index List",Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this,"Database Error: No Completed Index List",Toast.LENGTH_SHORT).show();
                     }
                 }
 
@@ -350,8 +355,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
             });
         }else{
-            Toast.makeText(MainActivity.this,"No User Logged In",Toast.LENGTH_SHORT).show();
-            ;
+            Toast.makeText(MainActivity.this,"Authentication Error: No User Logged In",Toast.LENGTH_SHORT).show();
         }
         buttonSettings(true);
         nameDisplay();
@@ -448,6 +452,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } else{
             topMessage.setText(R.string.InCorrectMessage);
         }
+        Toast.makeText(MainActivity.this,"Location Checking Complete",Toast.LENGTH_SHORT).show();
         buttonSettings(true);
         nameDisplay();
     }
@@ -464,7 +469,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     uploads.add(imageIndex);
                     db.child("users").child(userID).child("completedImages").setValue(uploads);
                 } else {
-                    Toast.makeText(MainActivity.this, "No ImageData List Exists", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, "Database Error: No ImageData List Exists", Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -474,6 +479,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
         if(processEnd){
+            Toast.makeText(MainActivity.this, "Upload Completed", Toast.LENGTH_SHORT).show();
             buttonSettings(true);
             nameDisplay();
         }
@@ -503,7 +509,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     //onClick Methods
     private void signUserOut(){
         mAuth.signOut();
-        Intent exitIntent = new Intent(this,StartUpActivity.class);
+        Intent exitIntent = new Intent(this,LogInActivity.class);
         startActivity(exitIntent);
     }
 

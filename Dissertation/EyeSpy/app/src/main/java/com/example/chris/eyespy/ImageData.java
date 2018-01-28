@@ -45,7 +45,7 @@ class ImageData implements Serializable{
         return this.correctCheckCount;
     }
 
-    public int getIndex(){
+    int getIndex(){
         return this.index;
     }
 

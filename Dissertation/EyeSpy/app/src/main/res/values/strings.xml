@@ -1,24 +1,21 @@
 <resources>
     <string name="app_name">EyeSpy</string>
-    <string name="LogInMessage">Welcome </string>
+    <string name="LogInMessage">Welcome</string>
     <string name="MainActivityImageViewContentDescription"> </string>
-    <string name="CameraButtonText">Camera</string>
+    <string name="CameraButtonText">Submit Image</string>
     <string name="LogInButtonText">Log In</string>
     <string name="SignOutButtonText">Sign Out</string>
     <string name="GetImageButtonText">Next Image</string>
-    <string name="LogInPopupTitle">Log In/Sign Up</string>
+    <string name="LogInPopupTitle">Log In/Create Account</string>
     <string name="EnterEmailHint">Enter Email</string>
     <string name="EnterPasswordHint">Enter Password</string>
-    <string name="EnterUsernameHint">Enter Username (Sign Up Only)</string>
-    <string name="SignUpButtonText">Sign Up</string>
+    <string name="EnterUsernameHint">Enter Username (Account Creation Only)</string>
+    <string name="SignUpButtonText">Create Account</string>
     <string name="CloseButtonText">Close</string>
-    <string name="SkipButtonText">Check Location</string>
+    <string name="CheckButtonText">Check Location</string>
     <string name="UploadProgress">Upload In Progress</string>
     <string name="UploadComplete">Upload Finished</string>
-    <string name="UploadError">Upload Error</string>
     <string name="CorrectMessage">Correct, 5 points allocated</string>
     <string name="InCorrectMessage">Incorrect Location</string>
     <string name="ImageMessage">Retrieving Image</string>
-
-
 </resources>
