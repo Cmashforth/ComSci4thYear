@@ -105,6 +105,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         currentImageData = new ImageData();
         currentImageIndex = 1;
 
+        if(!wifi.isWifiEnabled()){
+            wifi.setWifiEnabled(true);
+        }
         nameDisplay();
 
     }
@@ -391,6 +394,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 @Override
                 public void onReceive(Context context, Intent intent) {
                     List<ScanResult> results = wifi.getScanResults();
+                    unregisterReceiver(this);
                     ArrayList<String> connections = new ArrayList<>();
                     for(int i = 0; i < results.size(); i++){
                         connections.add(results.get(i).SSID + " "+ results.get(i).BSSID);
@@ -406,6 +410,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             wifi.startScan();
         }
     }
+
 
     //Check Method
     public void checkData(ImageData playerData){
