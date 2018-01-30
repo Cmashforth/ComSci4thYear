@@ -432,7 +432,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
 
         }
-        if(wifiCount/currentImageData.getWifiNetworks().size() >= 0.5 &&
+        if(wifiCount >= currentImageData.getWifiNetworks().size()/2 &&
                 ((double)Math.round(playerData.getLatitude() * 10000d) / 10000d) == ((double)Math.round(currentImageData.getLatitude() * 10000d) / 10000d) &&
                 ((double)Math.round(playerData.getLongitude() * 10000d) / 10000d) == ((double)Math.round(currentImageData.getLongitude() * 10000d) / 10000d)) {
 
