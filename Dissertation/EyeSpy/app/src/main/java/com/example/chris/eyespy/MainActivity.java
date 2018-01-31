@@ -414,24 +414,49 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     //Check Method
     public void checkData(ImageData playerData){
-        double wifiCount = 0.0;
+        int wifiCount = 0;
         if(playerData.getWifiNetworks() == null){
             getGPS(playerData);
         }
         if(currentImageData.getWifiNetworks().size() > playerData.getWifiNetworks().size()){
             for(int i = 0; i < playerData.getWifiNetworks().size(); i++){
                 if(currentImageData.getWifiNetworks().contains(playerData.getWifiNetworks().get(i))){
-                    wifiCount = wifiCount + 1.0;
+                    wifiCount = wifiCount + 1;
                 }
             }
         }else{
             for(int i = 0; i < currentImageData.getWifiNetworks().size();i++){
                 if(playerData.getWifiNetworks().contains(currentImageData.getWifiNetworks().get(i))){
-                    wifiCount = wifiCount + 1.0;
+                    wifiCount = wifiCount + 1;
                 }
             }
 
         }
+        
+        Toast.makeText(MainActivity.this, "Correct Wifi: " + wifiCount + " out of " + currentImageData.getWifiNetworks().size(),Toast.LENGTH_LONG).show();
+
+        if(((double)Math.round(playerData.getLatitude() * 1000d) / 1000d) == ((double)Math.round(currentImageData.getLatitude() * 1000d) / 1000d) &&
+                ((double)Math.round(playerData.getLongitude() * 1000d) / 1000d) == ((double)Math.round(currentImageData.getLongitude() * 1000d) / 1000d)){
+            Toast.makeText(MainActivity.this, "3dp Correct",Toast.LENGTH_SHORT).show();
+        }else{
+            Toast.makeText(MainActivity.this, "3dp Incorrect", Toast.LENGTH_SHORT).show();
+        }
+
+        if(((double)Math.round(playerData.getLatitude() * 10000d) / 10000d) == ((double)Math.round(currentImageData.getLatitude() * 10000d) / 10000d) &&
+                ((double)Math.round(playerData.getLongitude() * 10000d) / 10000d) == ((double)Math.round(currentImageData.getLongitude() * 10000d) / 10000d)){
+            Toast.makeText(MainActivity.this,"4dp Correct",Toast.LENGTH_SHORT).show();
+        }else{
+            Toast.makeText(MainActivity.this, "4dp Incorrect", Toast.LENGTH_SHORT).show();
+        }
+
+        if(((double)Math.round(playerData.getLatitude() * 100000d) / 100000d) == ((double)Math.round(currentImageData.getLatitude() * 100000d) / 100000d) &&
+                ((double)Math.round(playerData.getLongitude() * 100000d) / 100000d) == ((double)Math.round(currentImageData.getLongitude() * 100000d) / 100000d)){
+            Toast.makeText(MainActivity.this,"5dp Correct",Toast.LENGTH_SHORT).show();
+        }else{
+            Toast.makeText(MainActivity.this, "5dp Incorrect", Toast.LENGTH_SHORT).show();
+        }
+
+        /*
         if(wifiCount >= currentImageData.getWifiNetworks().size()/2 &&
                 ((double)Math.round(playerData.getLatitude() * 10000d) / 10000d) == ((double)Math.round(currentImageData.getLatitude() * 10000d) / 10000d) &&
                 ((double)Math.round(playerData.getLongitude() * 10000d) / 10000d) == ((double)Math.round(currentImageData.getLongitude() * 10000d) / 10000d)) {
@@ -462,6 +487,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } else{
             topMessage.setText(R.string.InCorrectMessage);
         }
+
+        */
         Toast.makeText(MainActivity.this,"Location Checking Complete",Toast.LENGTH_SHORT).show();
         buttonSettings(true);
         nameDisplay();
