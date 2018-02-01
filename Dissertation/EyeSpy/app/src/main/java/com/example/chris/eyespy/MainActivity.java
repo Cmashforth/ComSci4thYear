@@ -12,6 +12,7 @@ import android.net.Uri;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Environment;
+import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.FileProvider;
@@ -29,8 +30,12 @@ import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.firebase.ui.storage.images.FirebaseImageLoader;
-import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationSettingsRequest;
+import com.google.android.gms.location.SettingsClient;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -55,6 +60,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import static com.google.android.gms.location.LocationServices.getFusedLocationProviderClient;
+
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
 
@@ -72,13 +79,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private ProgressBar progressBar;
     private ImageData currentImageData;
     private int currentImageIndex;
+    private ArrayList<String> connections;
 
     private DatabaseReference db;
     private StorageReference myStor;
     private FirebaseStorage storInst;
     private FirebaseAuth mAuth;
 
-    private FusedLocationProviderClient mLocationClient;
+    private Location currentLocation;
     private WifiManager wifi;
 
     //Methods that override inbuilt methods
@@ -100,15 +108,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         myStor = FirebaseStorage.getInstance().getReference();
         storInst = FirebaseStorage.getInstance();
 
-        mLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         currentImageData = new ImageData();
         currentImageIndex = 1;
+        connections = new ArrayList<>();
 
+        wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         if(!wifi.isWifiEnabled()){
             wifi.setWifiEnabled(true);
         }
+
         nameDisplay();
+        createLocationRequest();
 
     }
 
@@ -369,25 +379,41 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         nameDisplay();
     }
 
-    //getGps and Wifi Methods
+    //Gps and Wifi Methods
     private void getGPS(final ImageData imageData){
+        imageData.setLatitude(currentLocation.getLatitude());
+        imageData.setLongitude(currentLocation.getLongitude());
+        scanWifiNetworks(imageData);
+    }
+
+    private void createLocationRequest(){
+        LocationRequest mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(10000);
+        mLocationRequest.setFastestInterval(2000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+
+        LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder();
+        builder.addLocationRequest(mLocationRequest);
+        LocationSettingsRequest locationSettingsRequest = builder.build();
+        SettingsClient settingsClient = LocationServices.getSettingsClient(this);
+        settingsClient.checkLocationSettings(locationSettingsRequest);
+
         if(ActivityCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},REQUEST_LOCATION);
         }
-        mLocationClient.getLastLocation()
-                .addOnCompleteListener(this, new OnCompleteListener<Location>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Location> task) {
-                        Location mLastLocation = task.getResult();
-                        imageData.setLatitude(mLastLocation.getLatitude());
-                        imageData.setLongitude(mLastLocation.getLongitude());
-                        scanWifiNetworks(imageData);
-                    }
-                });
+
+        getFusedLocationProviderClient(this).requestLocationUpdates(mLocationRequest, new LocationCallback(){
+            @Override
+            public void onLocationResult(LocationResult locationResult){
+                currentLocation = locationResult.getLastLocation();
+            }
+        }, Looper.myLooper());
+
     }
 
     private void scanWifiNetworks(final ImageData imageData){
         if(wifi.getWifiState() == WifiManager.WIFI_STATE_ENABLED){
+            connections.clear();
             IntentFilter filter = new IntentFilter();
             filter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
             registerReceiver(new BroadcastReceiver() {
@@ -395,7 +421,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 public void onReceive(Context context, Intent intent) {
                     List<ScanResult> results = wifi.getScanResults();
                     unregisterReceiver(this);
-                    ArrayList<String> connections = new ArrayList<>();
                     for(int i = 0; i < results.size(); i++){
                         connections.add(results.get(i).SSID + " "+ results.get(i).BSSID);
                     }
@@ -433,28 +458,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         }
         
-        Toast.makeText(MainActivity.this, "Correct Wifi: " + wifiCount + " out of " + currentImageData.getWifiNetworks().size(),Toast.LENGTH_LONG).show();
+        Toast.makeText(MainActivity.this, "Correct Wifi: " + wifiCount + " out of playerData:" + playerData.getWifiNetworks().size(),Toast.LENGTH_LONG).show();
 
-        if(((double)Math.round(playerData.getLatitude() * 1000d) / 1000d) == ((double)Math.round(currentImageData.getLatitude() * 1000d) / 1000d) &&
-                ((double)Math.round(playerData.getLongitude() * 1000d) / 1000d) == ((double)Math.round(currentImageData.getLongitude() * 1000d) / 1000d)){
-            Toast.makeText(MainActivity.this, "3dp Correct",Toast.LENGTH_SHORT).show();
+        Toast.makeText(MainActivity.this, "Correct Wifi: " + wifiCount + " out of ImageData:" + currentImageData.getWifiNetworks().size(),Toast.LENGTH_LONG).show();
+
+        if( coordCheck(playerData.getLatitude(),currentImageData.getLatitude(),1) && coordCheck(playerData.getLongitude(),currentImageData.getLongitude(),10) ){
+            Toast.makeText(MainActivity.this,"GPS Correct, 11m",Toast.LENGTH_SHORT).show();
         }else{
-            Toast.makeText(MainActivity.this, "3dp Incorrect", Toast.LENGTH_SHORT).show();
+            Toast.makeText(MainActivity.this,"Outside of 11m",Toast.LENGTH_SHORT).show();
         }
 
-        if(((double)Math.round(playerData.getLatitude() * 10000d) / 10000d) == ((double)Math.round(currentImageData.getLatitude() * 10000d) / 10000d) &&
-                ((double)Math.round(playerData.getLongitude() * 10000d) / 10000d) == ((double)Math.round(currentImageData.getLongitude() * 10000d) / 10000d)){
-            Toast.makeText(MainActivity.this,"4dp Correct",Toast.LENGTH_SHORT).show();
+        if( coordCheck(playerData.getLatitude(),currentImageData.getLatitude(),5) && coordCheck(playerData.getLongitude(),currentImageData.getLongitude(),5) ){
+            Toast.makeText(MainActivity.this,"GPS Correct, 55m",Toast.LENGTH_SHORT).show();
         }else{
-            Toast.makeText(MainActivity.this, "4dp Incorrect", Toast.LENGTH_SHORT).show();
+            Toast.makeText(MainActivity.this,"Outside of 55m",Toast.LENGTH_SHORT).show();
         }
 
-        if(((double)Math.round(playerData.getLatitude() * 100000d) / 100000d) == ((double)Math.round(currentImageData.getLatitude() * 100000d) / 100000d) &&
-                ((double)Math.round(playerData.getLongitude() * 100000d) / 100000d) == ((double)Math.round(currentImageData.getLongitude() * 100000d) / 100000d)){
-            Toast.makeText(MainActivity.this,"5dp Correct",Toast.LENGTH_SHORT).show();
+        if( coordCheck(playerData.getLatitude(),currentImageData.getLatitude(),2) && coordCheck(playerData.getLongitude(),currentImageData.getLongitude(),2) ){
+            Toast.makeText(MainActivity.this,"GPS Correct, 22m",Toast.LENGTH_SHORT).show();
         }else{
-            Toast.makeText(MainActivity.this, "5dp Incorrect", Toast.LENGTH_SHORT).show();
+            Toast.makeText(MainActivity.this,"Outside of 22m",Toast.LENGTH_SHORT).show();
         }
+
 
         /*
         if(wifiCount >= currentImageData.getWifiNetworks().size()/2 &&
@@ -493,6 +518,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         buttonSettings(true);
         nameDisplay();
     }
+
+    private boolean coordCheck(double playerCoord, double imageCoord, int metres){
+        if( (playerCoord > 0.0 && imageCoord > 0.0) || (playerCoord < 0.0 && imageCoord < 0.0) ){
+            double diff = playerCoord*1000 - imageCoord*1000;
+            return (Math.round(Math.abs(diff*10)) <= metres);
+        }else{
+            double diff = playerCoord*1000 + imageCoord*1000;
+            return (Math.round(Math.abs(diff*10)) <= metres);
+        }
+    }
+
 
     //Database Methods
     public void addToCompleteList(final String userID, final int imageIndex, boolean processEnd){
