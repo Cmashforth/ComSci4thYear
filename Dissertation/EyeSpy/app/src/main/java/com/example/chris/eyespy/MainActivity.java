@@ -76,7 +76,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button checkButton;
 
     private String mCurrentPhotoPath;
-    private ProgressBar progressBar;
     private ImageData currentImageData;
     private int currentImageIndex;
     private ArrayList<String> connections;
@@ -88,6 +87,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private Location currentLocation;
     private WifiManager wifi;
+    private int wifiScanCount;
 
     //Methods that override inbuilt methods
     @Override
@@ -98,7 +98,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         camButton = findViewById(R.id.button_image);
         topMessage = findViewById(R.id.topMessage);
         signOutButton = findViewById(R.id.SignOutButton);
-        progressBar = findViewById(R.id.uploadProgress);
         getImageButton = findViewById(R.id.getImage);
         mImageView = findViewById(R.id.image);
         checkButton = findViewById(R.id.checkButton);
@@ -111,6 +110,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         currentImageData = new ImageData();
         currentImageIndex = 1;
         connections = new ArrayList<>();
+        wifiScanCount = 1;
 
         wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         if(!wifi.isWifiEnabled()){
@@ -211,13 +211,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }).addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
                 @Override
                 public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
-                    double progress = (100.0 * taskSnapshot.getBytesTransferred())/taskSnapshot.getTotalByteCount();
-                    progressBar.setProgress((int) progress);
                 }
             }).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
                 @Override
                 public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
-                    progressBar.setProgress(0);
                 }
             }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                 @Override
@@ -457,9 +454,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
 
         }
-        
-        Toast.makeText(MainActivity.this, "Correct Wifi: " + wifiCount + " out of playerData:" + playerData.getWifiNetworks().size(),Toast.LENGTH_LONG).show();
 
+        Toast.makeText(MainActivity.this,"Scan Number:" + wifiScanCount,Toast.LENGTH_SHORT).show();
+        Toast.makeText(MainActivity.this, "Correct Wifi: " + wifiCount + " out of playerData:" + playerData.getWifiNetworks().size(),Toast.LENGTH_LONG).show();
         Toast.makeText(MainActivity.this, "Correct Wifi: " + wifiCount + " out of ImageData:" + currentImageData.getWifiNetworks().size(),Toast.LENGTH_LONG).show();
 
         if( coordCheck(playerData.getLatitude(),currentImageData.getLatitude(),1) && coordCheck(playerData.getLongitude(),currentImageData.getLongitude(),10) ){
@@ -468,10 +465,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Toast.makeText(MainActivity.this,"Outside of 11m",Toast.LENGTH_SHORT).show();
         }
 
-        if( coordCheck(playerData.getLatitude(),currentImageData.getLatitude(),5) && coordCheck(playerData.getLongitude(),currentImageData.getLongitude(),5) ){
-            Toast.makeText(MainActivity.this,"GPS Correct, 55m",Toast.LENGTH_SHORT).show();
+        if( coordCheck(playerData.getLatitude(),currentImageData.getLatitude(),0.5) && coordCheck(playerData.getLongitude(),currentImageData.getLongitude(),5) ){
+            Toast.makeText(MainActivity.this,"GPS Correct, 5.5m",Toast.LENGTH_SHORT).show();
         }else{
-            Toast.makeText(MainActivity.this,"Outside of 55m",Toast.LENGTH_SHORT).show();
+            Toast.makeText(MainActivity.this,"Outside of 5.5m",Toast.LENGTH_SHORT).show();
         }
 
         if( coordCheck(playerData.getLatitude(),currentImageData.getLatitude(),2) && coordCheck(playerData.getLongitude(),currentImageData.getLongitude(),2) ){
@@ -480,6 +477,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Toast.makeText(MainActivity.this,"Outside of 22m",Toast.LENGTH_SHORT).show();
         }
 
+        if(wifiScanCount < 3){
+            wifiScanCount++;
+            getGPS(playerData);
+        }else{
+            wifiScanCount = 1;
+            Toast.makeText(MainActivity.this,"Location Checking Complete",Toast.LENGTH_SHORT).show();
+            buttonSettings(true);
+            nameDisplay();
+        }
 
         /*
         if(wifiCount >= currentImageData.getWifiNetworks().size()/2 &&
@@ -514,12 +520,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         */
-        Toast.makeText(MainActivity.this,"Location Checking Complete",Toast.LENGTH_SHORT).show();
-        buttonSettings(true);
-        nameDisplay();
     }
 
-    private boolean coordCheck(double playerCoord, double imageCoord, int metres){
+    private boolean coordCheck(double playerCoord, double imageCoord, double metres){
         if( (playerCoord > 0.0 && imageCoord > 0.0) || (playerCoord < 0.0 && imageCoord < 0.0) ){
             double diff = playerCoord*1000 - imageCoord*1000;
             return (Math.round(Math.abs(diff*10)) <= metres);
