@@ -4,6 +4,7 @@ package com.example.chris.eyespy;
 import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.icu.text.SimpleDateFormat;
@@ -16,6 +17,7 @@ import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.FileProvider;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.content.Intent;
@@ -74,6 +76,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button getImageButton;
     private Button signOutButton;
     private Button checkButton;
+    private ProgressBar spinner;
 
     private String mCurrentPhotoPath;
     private ImageData currentImageData;
@@ -101,6 +104,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         getImageButton = findViewById(R.id.getImage);
         mImageView = findViewById(R.id.image);
         checkButton = findViewById(R.id.checkButton);
+        spinner = findViewById(R.id.spinner);
 
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseDatabase.getInstance().getReference();
@@ -117,6 +121,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             wifi.setWifiEnabled(true);
         }
 
+        spinner.setVisibility(View.INVISIBLE);
         nameDisplay();
         createLocationRequest();
 
@@ -136,7 +141,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             try{
                 takePicture();
             } catch(IOException ex){
-                Toast.makeText(MainActivity.this, "Camera Error, Cannot Access Camera",Toast.LENGTH_SHORT).show();
+                createDialog("Camera Error, Cannot Access Camera");
             }
         } else if(view == signOutButton){
             signUserOut();
@@ -144,7 +149,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             getImage();
         } else if(view == checkButton){
             ImageData playerData = new ImageData(null,null);
-            buttonSettings(false);
+            displaySettings(false);
             getGPS(playerData);
         }
 
@@ -166,7 +171,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return image;
         }catch(IOException ex){
             ex.printStackTrace();
-            Toast.makeText(MainActivity.this, "File Error, File Creation Error",Toast.LENGTH_SHORT).show();
+            createDialog("File Error, File Creation Error");
             return null;
         }
 
@@ -185,10 +190,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     takePic.putExtra(MediaStore.EXTRA_OUTPUT,outputFileUri);
                     startActivityForResult(takePic,REQUEST_TAKE_PHOTO);
                 } else{
-                    Toast.makeText(MainActivity.this,"Image Capture Error, null values",Toast.LENGTH_SHORT).show();
+                    createDialog("Image Capture Error, null values");
                 }
             } catch(IOException ex){
-                Toast.makeText(MainActivity.this, "File Error, Cannot Access File",Toast.LENGTH_SHORT).show();
+                createDialog("File Error, Cannot Access File");
             }
         }
     }
@@ -197,7 +202,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onActivityResult(int requestCode, int resultCode, Intent data){
         super.onActivityResult(requestCode,resultCode,data);
         if(requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK){
-            buttonSettings(false);
+            displaySettings(false);
             topMessage.setText(R.string.UploadProgress);
             Uri imageUri = Uri.parse(mCurrentPhotoPath);
             StorageReference uploadRef = myStor.child("images/"+imageUri.getLastPathSegment());
@@ -206,15 +211,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 
                 @Override
                 public void onFailure(@NonNull Exception e) {
-                    Toast.makeText(MainActivity.this,"Upload Error, Failed Upload",Toast.LENGTH_SHORT).show();
-                }
-            }).addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
-                @Override
-                public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
-                }
-            }).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
-                @Override
-                public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
+                   createDialog("Upload Error, Failed Upload");
                 }
             }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                 @Override
@@ -224,14 +221,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         final ImageData newImageData = new ImageData(newUri.toString(),mAuth.getUid());
                         getGPS(newImageData);
                     }else{
-                        Toast.makeText(MainActivity.this,"Upload Error, No Download URL For File",Toast.LENGTH_SHORT).show();
-                        buttonSettings(true);
+                        createDialog("Upload Error, No Download URL For File");
+                        displaySettings(true);
                         nameDisplay();
                     }
                 }
             });
         } else{
-            Toast.makeText(MainActivity.this,"Camera Error, Incorrect Request Codes",Toast.LENGTH_SHORT).show();
+            createDialog("Camera Error, Incorrect Request Codes");
         }
 
     }
@@ -251,16 +248,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     db.child("images").child(Integer.toString(maxIndex + 1)).child("wifiNetworks").setValue(imageData.getWifiNetworks());
                     addToCompleteList(mAuthID,maxIndex + 1,true);
                 }else{
-                    Toast.makeText(MainActivity.this,"Database Error, Cannot Retrieve Maximum Index",Toast.LENGTH_SHORT).show();
-                    buttonSettings(true);
+                    createDialog("Database Error, Cannot Retrieve Maximum Index");
+                    displaySettings(true);
                     nameDisplay();
                 }
             }
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-                Toast.makeText(MainActivity.this,"Upload Cancelled",Toast.LENGTH_SHORT).show();
-                buttonSettings(true);
+                createDialog("Upload Cancelled");
+                displaySettings(true);
                 nameDisplay();
             }
         });
@@ -270,15 +267,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     //Image Retrieval Methods
     private void getImage(){
-        buttonSettings(false);
+        displaySettings(false);
         topMessage.setText(R.string.ImageMessage);
         db.child("maxImageIndex").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 Integer maxIndex = dataSnapshot.getValue(Integer.class);
                 if(maxIndex == null){
-                    Toast.makeText(MainActivity.this, "Database Error, No Maximum Index Exists",Toast.LENGTH_SHORT).show();
-                    buttonSettings(true);
+                    createDialog("Database Error, No Maximum Index Exists");
+                    displaySettings(true);
                     nameDisplay();
                     return;
                 }
@@ -287,9 +284,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-                buttonSettings(true);
+                displaySettings(true);
                 nameDisplay();
-                Toast.makeText(MainActivity.this, "Database Error, Retreival Cancelled", Toast.LENGTH_SHORT).show();
+                createDialog("Database Error, Retreival Cancelled");
             }
         });
     }
@@ -306,7 +303,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             currentImageIndex = currentImageIndex + 1;
                         }
                         if(currentImageIndex > maxIndex){
-                            Toast.makeText(MainActivity.this,"All images presented",Toast.LENGTH_SHORT).show();
+                            createDialog("All images presented");
                             currentImageIndex = 0;
                             return;
                         }
@@ -326,7 +323,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                             .into(mImageView);
 
                                 } else {
-                                    Toast.makeText(MainActivity.this, "Download Error: Download URL does not Exist", Toast.LENGTH_SHORT).show();
+                                   createDialog("Download Error: Download URL does not Exist");
                                 }
 
                                 Double imageLatitude = dataSnapshot.child("latitude").getValue(Double.class);
@@ -356,23 +353,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                             @Override
                             public void onCancelled(DatabaseError databaseError) {
-                                Toast.makeText(MainActivity.this,"Database Error, Image Retrieval Cancelled",Toast.LENGTH_SHORT).show();
+                                createDialog("Database Error, Image Retrieval Cancelled");
                             }
                         });
                     } else{
-                        Toast.makeText(MainActivity.this,"Database Error: No Completed Index List",Toast.LENGTH_SHORT).show();
+                        createDialog("Database Error: No Completed Index List");
                     }
                 }
 
                 @Override
                 public void onCancelled(DatabaseError databaseError) {
-                    Toast.makeText(MainActivity.this,"Database Error, Image Retrieval Cancelled",Toast.LENGTH_SHORT).show();
+                    createDialog("Database Error, Image Retrieval Cancelled");
                 }
             });
         }else{
-            Toast.makeText(MainActivity.this,"Authentication Error: No User Logged In",Toast.LENGTH_SHORT).show();
+            createDialog("Authentication Error: No User Logged In");
         }
-        buttonSettings(true);
+        displaySettings(true);
         nameDisplay();
     }
 
@@ -483,7 +480,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }else{
             wifiScanCount = 1;
             Toast.makeText(MainActivity.this,"Location Checking Complete",Toast.LENGTH_SHORT).show();
-            buttonSettings(true);
+            displaySettings(true);
             nameDisplay();
         }
 
@@ -538,30 +535,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         db.child("users").child(userID).child("completedImages").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                GenericTypeIndicator<List<Integer>> indexList = new GenericTypeIndicator<List<Integer>>() {
-                };
+                GenericTypeIndicator<List<Integer>> indexList = new GenericTypeIndicator<List<Integer>>() {};
                 List<Integer> uploads = dataSnapshot.getValue(indexList);
                 if (uploads != null) {
                     uploads.add(imageIndex);
                     db.child("users").child(userID).child("completedImages").setValue(uploads);
                 } else {
-                    Toast.makeText(MainActivity.this, "Database Error: No ImageData List Exists", Toast.LENGTH_SHORT).show();
+                    createDialog("Database Error: No ImageData List Exists");
                 }
             }
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-                Toast.makeText(MainActivity.this, "Database Error, Process Cancelled", Toast.LENGTH_SHORT).show();
-
+                createDialog("Database Error, Process Cancelled");
             }
         });
         if(processEnd){
-            Toast.makeText(MainActivity.this, "Upload Completed", Toast.LENGTH_SHORT).show();
-            buttonSettings(true);
+            createDialog("Upload Finished");
+            displaySettings(true);
             nameDisplay();
         }
-
-
     }
 
     public void pointsAllocation(final String playerID,final int value){
@@ -573,13 +566,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     points = points + value;
                     db.child("users").child(playerID).child("points").setValue(points);
                 }else{
-                    Toast.makeText(MainActivity.this, "Database Error, User Points Does Not Exist", Toast.LENGTH_SHORT).show();
+                    createDialog("Database Error, User Points Does Not Exist");
                 }
             }
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-                Toast.makeText(MainActivity.this,"Database Error, Points Allocation Cancelled",Toast.LENGTH_SHORT).show();
+                createDialog("Database Error, Points Allocation Cancelled");
             }
         });
 
@@ -593,11 +586,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     //Display methods
-    private void buttonSettings(boolean setting){
+    private void displaySettings(boolean setting){
         camButton.setEnabled(setting);
         getImageButton.setEnabled(setting);
         checkButton.setEnabled(setting);
         signOutButton.setEnabled(setting);
+
+        if(!setting){
+            mImageView.setVisibility(View.INVISIBLE);
+            spinner.setVisibility(View.VISIBLE);
+        }else{
+            spinner.setVisibility(View.INVISIBLE);
+            mImageView.setVisibility(View.VISIBLE);
+        }
     }
 
     private void nameDisplay(){
@@ -613,27 +614,39 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             if(numPoints != null){
                                 topMessage.setText(message + ": " + numPoints.toString() + " Points");
                             } else{
-                                Toast.makeText(MainActivity.this, "Database Error, User Point Value Does Not Exist", Toast.LENGTH_SHORT).show();
+                                createDialog("Database Error, User Point Value Does Not Exist");
                                 topMessage.setText(message);
                             }
                         }
 
                         @Override
                         public void onCancelled(DatabaseError databaseError) {
-                            Toast.makeText(MainActivity.this, "Database Error, Display Cancelled", Toast.LENGTH_SHORT).show();
+                            createDialog("Database Error, Display Cancelled");
                         }
                     });
                 }
 
                 @Override
                 public void onCancelled(DatabaseError databaseError) {
-                    Toast.makeText(MainActivity.this, "Database Error, Display Cancelled", Toast.LENGTH_SHORT).show();
+                    createDialog("Database Error, Display Cancelled");
                 }
             });
         } else{
-            Toast.makeText(MainActivity.this, "Database Error, User Account Does Not Exist", Toast.LENGTH_SHORT).show();
+            createDialog("Database Error, User Account Does Not Exist");
         }
     }
 
+    private void createDialog(String message){
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+        alertDialogBuilder.setMessage(message);
+        alertDialogBuilder.setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
 
+            }
+        });
+
+        AlertDialog alertDialog = alertDialogBuilder.create();
+        alertDialog.show();
+    }
 }

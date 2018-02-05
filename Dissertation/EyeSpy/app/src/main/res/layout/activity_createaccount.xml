@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <TextView
+        android:layout_height="50dp"
+        android:layout_width="match_parent"
+        android:text="@string/CreateAccountTitle"
+        android:textSize="30sp"
+        android:layout_marginStart="10dp"
+        android:id="@+id/TitleText"
+        />
+
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_below="@id/TitleText"
+        android:inputType="textEmailAddress"
+        android:hint="@string/EnterEmailHint"
+        android:layout_marginStart="10dp"
+        android:id="@+id/Email"/>
+
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_below="@id/Email"
+        android:inputType="textPassword"
+        android:hint="@string/EnterPasswordHint"
+        android:layout_marginStart="10dp"
+        android:id="@+id/Password"/>
+
+    <EditText
+        android:id="@+id/UserName"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_below="@+id/Password"
+        android:hint="@string/EnterUsernameHint"
+        android:layout_marginStart="10dp"/>
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_below="@id/UserName"
+        android:text="@string/SignUpButtonText"
+        android:id="@+id/SignUpButton"
+        android:onClick="onClick"/>
+
+
+
+</RelativeLayout>

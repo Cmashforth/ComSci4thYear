@@ -3,7 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context="com.example.chris.eyespy.MainActivity">
 
     <TextView
@@ -22,6 +21,17 @@
         android:contentDescription="@string/MainActivityImageViewContentDescription"
         android:layout_below="@+id/topMessage"
         android:layout_centerHorizontal="true" />
+
+    <ProgressBar
+        android:id="@+id/spinner"
+        style="?android:attr/progressBarStyleLarge"
+        android:progressDrawable="@drawable/progress_bar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="136dp"
+        android:layout_above="@+id/checkButton"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"/>
 
     <Button
         android:id="@+id/button_image"
@@ -67,7 +77,5 @@
         android:layout_below="@+id/image"
         android:layout_alignStart="@+id/image"
         android:layout_alignEnd="@+id/image" />
-
-
 
 </RelativeLayout>

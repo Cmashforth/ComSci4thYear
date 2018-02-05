@@ -6,10 +6,10 @@
     <string name="LogInButtonText">Log In</string>
     <string name="SignOutButtonText">Sign Out</string>
     <string name="GetImageButtonText">Next Image</string>
-    <string name="LogInPopupTitle">Log In/Create Account</string>
+    <string name="LogInPopupTitle">Log In</string>
     <string name="EnterEmailHint">Enter Email</string>
     <string name="EnterPasswordHint">Enter Password</string>
-    <string name="EnterUsernameHint">Enter Username (Account Creation Only)</string>
+    <string name="EnterUsernameHint">Enter Username</string>
     <string name="SignUpButtonText">Create Account</string>
     <string name="CloseButtonText">Close</string>
     <string name="CheckButtonText">Check Location</string>
@@ -18,4 +18,5 @@
     <string name="CorrectMessage">Correct, 5 points allocated</string>
     <string name="InCorrectMessage">Incorrect Location</string>
     <string name="ImageMessage">Retrieving Image</string>
+    <string name="CreateAccountTitle">Create Account</string>
 </resources>

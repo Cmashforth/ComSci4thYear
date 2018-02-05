@@ -34,18 +34,10 @@
         android:layout_marginStart="10dp"
         android:id="@+id/Password"/>
 
-    <EditText
-        android:id="@+id/UserName"
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:layout_below="@+id/Password"
-        android:hint="@string/EnterUsernameHint"
-        android:layout_marginStart="10dp"/>
-
     <Button
         android:layout_width="match_parent"
         android:layout_height="50dp"
-        android:layout_below="@id/UserName"
+        android:layout_below="@id/Password"
         android:text="@string/LogInButtonText"
         android:id="@+id/LogInButton"
         android:onClick="onClick"/>
