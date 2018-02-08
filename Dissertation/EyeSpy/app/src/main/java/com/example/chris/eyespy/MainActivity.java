@@ -148,6 +148,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } else if(view == getImageButton){
             getImage();
         } else if(view == checkButton){
+            topMessage.setText(R.string.CheckingMessage);
             ImageData playerData = new ImageData(null,null);
             displaySettings(false);
             getGPS(playerData);
@@ -449,45 +450,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     wifiCount = wifiCount + 1;
                 }
             }
-
         }
 
-        Toast.makeText(MainActivity.this,"Scan Number:" + wifiScanCount,Toast.LENGTH_SHORT).show();
-        Toast.makeText(MainActivity.this, "Correct Wifi: " + wifiCount + " out of playerData:" + playerData.getWifiNetworks().size(),Toast.LENGTH_LONG).show();
-        Toast.makeText(MainActivity.this, "Correct Wifi: " + wifiCount + " out of ImageData:" + currentImageData.getWifiNetworks().size(),Toast.LENGTH_LONG).show();
-
-        if( coordCheck(playerData.getLatitude(),currentImageData.getLatitude(),1) && coordCheck(playerData.getLongitude(),currentImageData.getLongitude(),10) ){
-            Toast.makeText(MainActivity.this,"GPS Correct, 11m",Toast.LENGTH_SHORT).show();
-        }else{
-            Toast.makeText(MainActivity.this,"Outside of 11m",Toast.LENGTH_SHORT).show();
-        }
-
-        if( coordCheck(playerData.getLatitude(),currentImageData.getLatitude(),0.5) && coordCheck(playerData.getLongitude(),currentImageData.getLongitude(),5) ){
-            Toast.makeText(MainActivity.this,"GPS Correct, 5.5m",Toast.LENGTH_SHORT).show();
-        }else{
-            Toast.makeText(MainActivity.this,"Outside of 5.5m",Toast.LENGTH_SHORT).show();
-        }
-
-        if( coordCheck(playerData.getLatitude(),currentImageData.getLatitude(),2) && coordCheck(playerData.getLongitude(),currentImageData.getLongitude(),2) ){
-            Toast.makeText(MainActivity.this,"GPS Correct, 22m",Toast.LENGTH_SHORT).show();
-        }else{
-            Toast.makeText(MainActivity.this,"Outside of 22m",Toast.LENGTH_SHORT).show();
-        }
-
-        if(wifiScanCount < 3){
-            wifiScanCount++;
-            getGPS(playerData);
-        }else{
-            wifiScanCount = 1;
-            Toast.makeText(MainActivity.this,"Location Checking Complete",Toast.LENGTH_SHORT).show();
-            displaySettings(true);
-            nameDisplay();
-        }
-
-        /*
-        if(wifiCount >= currentImageData.getWifiNetworks().size()/2 &&
-                ((double)Math.round(playerData.getLatitude() * 10000d) / 10000d) == ((double)Math.round(currentImageData.getLatitude() * 10000d) / 10000d) &&
-                ((double)Math.round(playerData.getLongitude() * 10000d) / 10000d) == ((double)Math.round(currentImageData.getLongitude() * 10000d) / 10000d)) {
+        if((wifiCount >= currentImageData.getWifiNetworks().size()/2 || wifiCount >= playerData.getWifiNetworks().size()/2)
+            && coordCheck(playerData.getLatitude(),currentImageData.getLatitude()) && coordCheck(playerData.getLongitude(),currentImageData.getLongitude())){
 
             addToCompleteList(mAuth.getUid(), currentImageData.getIndex(),false);
             pointsAllocation(currentImageData.getUserID(), 1);
@@ -501,31 +467,37 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         count = count + 1;
                         db.child("images").child(Integer.toString(currentImageData.getIndex())).child("correctCheckCount").setValue(count);
                     }else{
-                        Toast.makeText(MainActivity.this, "Database Error, Correct Check does not Exist", Toast.LENGTH_SHORT).show();
+                        createDialog("Database Error, Correct Check does not Exist");
                     }
 
                 }
                 @Override
                 public void onCancelled(DatabaseError databaseError) {
-                    Toast.makeText(MainActivity.this, "Database Error, Checking Cancelled", Toast.LENGTH_SHORT).show();
+                    createDialog("Database Error, Checking Cancelled");
                 }
             });
-            topMessage.setText(R.string.CorrectMessage);
+            createDialog("Correct, 5 points allocated");
             getImage();
         } else{
-            topMessage.setText(R.string.InCorrectMessage);
+            if(wifiScanCount < 3){
+                wifiScanCount++;
+                getGPS(playerData);
+            }else{
+                wifiScanCount = 1;
+                createDialog("Incorrect Location");
+                displaySettings(true);
+                nameDisplay();
+            }
         }
-
-        */
     }
 
-    private boolean coordCheck(double playerCoord, double imageCoord, double metres){
+    private boolean coordCheck(double playerCoord, double imageCoord){
         if( (playerCoord > 0.0 && imageCoord > 0.0) || (playerCoord < 0.0 && imageCoord < 0.0) ){
             double diff = playerCoord*1000 - imageCoord*1000;
-            return (Math.round(Math.abs(diff*10)) <= metres);
+            return (Math.round(Math.abs(diff*10)) <= 1);
         }else{
             double diff = playerCoord*1000 + imageCoord*1000;
-            return (Math.round(Math.abs(diff*10)) <= metres);
+            return (Math.round(Math.abs(diff*10)) <= 1);
         }
     }
 
