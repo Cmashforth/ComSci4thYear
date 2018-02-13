@@ -5,7 +5,7 @@
     <string name="CameraButtonText">Submit Image</string>
     <string name="LogInButtonText">Log In</string>
     <string name="SignOutButtonText">Sign Out</string>
-    <string name="GetImageButtonText">Next Image</string>
+    <string name="GetImageButtonText">Retrieve Image</string>
     <string name="LogInPopupTitle">Log In</string>
     <string name="EnterEmailHint">Enter Email</string>
     <string name="EnterPasswordHint">Enter Password</string>
@@ -18,4 +18,5 @@
     <string name="ImageMessage">Retrieving Image</string>
     <string name="CreateAccountTitle">Create Account</string>
     <string name="CheckingMessage">Checking Location</string>
+    <string name="NextText">Next Image</string>
 </resources>

@@ -306,6 +306,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         if(currentImageIndex > maxIndex){
                             createDialog("All images presented");
                             currentImageIndex = 0;
+                            mImageView.setImageDrawable(null);
+                            getImageButton.setText(R.string.GetImageButtonText);
                             return;
                         }
                         if(currentImageIndex == 0){
@@ -346,6 +348,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                     currentImageData.setUserID(imageUserID);
                                 }
 
+                                getImageButton.setText(R.string.NextText);
                                 currentImageData.setIndex(currentImageIndex);
                                 currentImageIndex = currentImageIndex + 1;
                                 checkButton.setVisibility(View.VISIBLE);
@@ -383,8 +386,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void createLocationRequest(){
         LocationRequest mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(10000);
-        mLocationRequest.setFastestInterval(2000);
+        mLocationRequest.setInterval(2000);
+        mLocationRequest.setFastestInterval(1000);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder();
@@ -452,52 +455,58 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
 
-        if((wifiCount >= currentImageData.getWifiNetworks().size()/2 || wifiCount >= playerData.getWifiNetworks().size()/2)
-            && coordCheck(playerData.getLatitude(),currentImageData.getLatitude()) && coordCheck(playerData.getLongitude(),currentImageData.getLongitude())){
+        if(coordCheck(playerData.getLatitude(),currentImageData.getLatitude()) && coordCheck(playerData.getLongitude(),currentImageData.getLongitude())) {
+            if ((wifiCount >= currentImageData.getWifiNetworks().size() / 2 || wifiCount >= playerData.getWifiNetworks().size() / 2)) {
+                addToCompleteList(mAuth.getUid(), currentImageData.getIndex(), false);
+                pointsAllocation(currentImageData.getUserID(), 1);
+                pointsAllocation(mAuth.getUid(), 5);
 
-            addToCompleteList(mAuth.getUid(), currentImageData.getIndex(),false);
-            pointsAllocation(currentImageData.getUserID(), 1);
-            pointsAllocation(mAuth.getUid(), 5);
+                db.child("images").child(Integer.toString(currentImageData.getIndex())).child("correctCheckCount").addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        Integer count = dataSnapshot.getValue(Integer.class);
+                        if (count != null) {
+                            count = count + 1;
+                            db.child("images").child(Integer.toString(currentImageData.getIndex())).child("correctCheckCount").setValue(count);
+                        } else {
+                            createDialog("Database Error, Correct Check does not Exist");
+                        }
 
-            db.child("images").child(Integer.toString(currentImageData.getIndex())).child("correctCheckCount").addListenerForSingleValueEvent(new ValueEventListener() {
-                @Override
-                public void onDataChange(DataSnapshot dataSnapshot) {
-                    Integer count = dataSnapshot.getValue(Integer.class);
-                    if (count != null) {
-                        count = count + 1;
-                        db.child("images").child(Integer.toString(currentImageData.getIndex())).child("correctCheckCount").setValue(count);
-                    }else{
-                        createDialog("Database Error, Correct Check does not Exist");
                     }
 
-                }
-                @Override
-                public void onCancelled(DatabaseError databaseError) {
-                    createDialog("Database Error, Checking Cancelled");
-                }
-            });
-            createDialog("Correct, 5 points allocated");
-            getImage();
-        } else{
-            if(wifiScanCount < 3){
-                wifiScanCount++;
-                getGPS(playerData);
-            }else{
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                        createDialog("Database Error, Checking Cancelled");
+                    }
+                });
+                createDialog("Correct, 5 points allocated");
                 wifiScanCount = 1;
-                createDialog("Incorrect Location");
-                displaySettings(true);
-                nameDisplay();
+                getImage();
+            } else {
+                if (wifiScanCount < 3) {
+                    wifiScanCount++;
+                    getGPS(playerData);
+                } else {
+                    wifiScanCount = 1;
+                    createDialog("Incorrect, Not Enough Matching Wifi Addresses. Location cannot be Verified");
+                    displaySettings(true);
+                    nameDisplay();
+                }
             }
+        }else{
+            createDialog("Incorrect, More than 22m away from Location of Picture");
+            displaySettings(true);
+            nameDisplay();
         }
     }
 
     private boolean coordCheck(double playerCoord, double imageCoord){
         if( (playerCoord > 0.0 && imageCoord > 0.0) || (playerCoord < 0.0 && imageCoord < 0.0) ){
             double diff = playerCoord*1000 - imageCoord*1000;
-            return (Math.round(Math.abs(diff*10)) <= 1);
+            return (Math.round(Math.abs(diff*10)) <= 2);
         }else{
             double diff = playerCoord*1000 + imageCoord*1000;
-            return (Math.round(Math.abs(diff*10)) <= 1);
+            return (Math.round(Math.abs(diff*10)) <= 2);
         }
     }
 
