@@ -19,4 +19,5 @@
     <string name="CreateAccountTitle">Create Account</string>
     <string name="CheckingMessage">Checking Location</string>
     <string name="NextText">Next Image</string>
+    <string name="UploaderMessage">Uploaded By: %1$s</string>
 </resources>

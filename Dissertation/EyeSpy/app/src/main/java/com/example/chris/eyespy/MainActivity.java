@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.icu.text.SimpleDateFormat;
 import android.location.Location;
 import android.net.Uri;
@@ -27,8 +28,6 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
-
 
 import com.bumptech.glide.Glide;
 import com.firebase.ui.storage.images.FirebaseImageLoader;
@@ -38,10 +37,8 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.SettingsClient;
-import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -50,7 +47,6 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.GenericTypeIndicator;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
@@ -121,8 +117,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             wifi.setWifiEnabled(true);
         }
 
+        if(ActivityCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},REQUEST_LOCATION);
+        }
+
         spinner.setVisibility(View.INVISIBLE);
-        nameDisplay();
+        nameDisplay(currentImageData.getUserID());
         createLocationRequest();
 
     }
@@ -224,7 +224,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }else{
                         createDialog("Upload Error, No Download URL For File");
                         displaySettings(true);
-                        nameDisplay();
+                        nameDisplay(currentImageData.getUserID());
                     }
                 }
             });
@@ -251,7 +251,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }else{
                     createDialog("Database Error, Cannot Retrieve Maximum Index");
                     displaySettings(true);
-                    nameDisplay();
+                    nameDisplay(currentImageData.getUserID());
                 }
             }
 
@@ -259,7 +259,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onCancelled(DatabaseError databaseError) {
                 createDialog("Upload Cancelled");
                 displaySettings(true);
-                nameDisplay();
+                nameDisplay(currentImageData.getUserID());
             }
         });
 
@@ -277,7 +277,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if(maxIndex == null){
                     createDialog("Database Error, No Maximum Index Exists");
                     displaySettings(true);
-                    nameDisplay();
+                    nameDisplay(currentImageData.getUserID());
                     return;
                 }
                 imageProcessing(maxIndex);
@@ -286,7 +286,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void onCancelled(DatabaseError databaseError) {
                 displaySettings(true);
-                nameDisplay();
+                nameDisplay(currentImageData.getUserID());
                 createDialog("Database Error, Retreival Cancelled");
             }
         });
@@ -304,6 +304,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             currentImageIndex = currentImageIndex + 1;
                         }
                         if(currentImageIndex > maxIndex){
+                            nameDisplay(null);
                             createDialog("All images presented");
                             currentImageIndex = 0;
                             mImageView.setImageDrawable(null);
@@ -374,7 +375,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             createDialog("Authentication Error: No User Logged In");
         }
         displaySettings(true);
-        nameDisplay();
+        nameDisplay(currentImageData.getUserID());
     }
 
     //Gps and Wifi Methods
@@ -398,14 +399,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         if(ActivityCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},REQUEST_LOCATION);
+        }else {
+            getFusedLocationProviderClient(this).requestLocationUpdates(mLocationRequest, new LocationCallback() {
+                @Override
+                public void onLocationResult(LocationResult locationResult) {
+                    currentLocation = locationResult.getLastLocation();
+                }
+            }, Looper.myLooper());
         }
-
-        getFusedLocationProviderClient(this).requestLocationUpdates(mLocationRequest, new LocationCallback(){
-            @Override
-            public void onLocationResult(LocationResult locationResult){
-                currentLocation = locationResult.getLastLocation();
-            }
-        }, Looper.myLooper());
 
     }
 
@@ -459,7 +460,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if ((wifiCount >= currentImageData.getWifiNetworks().size() / 2 || wifiCount >= playerData.getWifiNetworks().size() / 2)) {
                 addToCompleteList(mAuth.getUid(), currentImageData.getIndex(), false);
                 pointsAllocation(currentImageData.getUserID(), 1);
-                pointsAllocation(mAuth.getUid(), 5);
+                pointsAllocation(mAuth.getUid(), 2);
 
                 db.child("images").child(Integer.toString(currentImageData.getIndex())).child("correctCheckCount").addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
@@ -479,7 +480,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         createDialog("Database Error, Checking Cancelled");
                     }
                 });
-                createDialog("Correct, 5 points allocated");
+                createDialog("Correct, 2 points allocated");
                 wifiScanCount = 1;
                 getImage();
             } else {
@@ -490,13 +491,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     wifiScanCount = 1;
                     createDialog("Incorrect, Not Enough Matching Wifi Addresses. Location cannot be Verified");
                     displaySettings(true);
-                    nameDisplay();
+                    nameDisplay(currentImageData.getUserID());
                 }
             }
         }else{
             createDialog("Incorrect, More than 22m away from Location of Picture");
             displaySettings(true);
-            nameDisplay();
+            nameDisplay(currentImageData.getUserID());
         }
     }
 
@@ -534,7 +535,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if(processEnd){
             createDialog("Upload Finished");
             displaySettings(true);
-            nameDisplay();
+            nameDisplay(currentImageData.getUserID());
         }
     }
 
@@ -582,38 +583,54 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    private void nameDisplay(){
-        if(mAuth.getUid() != null){
-            db.child("users").child(mAuth.getUid()).child("username").addListenerForSingleValueEvent(new ValueEventListener() {
+    private void nameDisplay(String userID){
+        if(userID == null) {
+            if (mAuth.getUid() != null) {
+                db.child("users").child(mAuth.getUid()).child("username").addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        final String message = dataSnapshot.getValue(String.class);
+                        db.child("users").child(mAuth.getUid()).child("points").addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(DataSnapshot dataSnapshot) {
+                                Integer numPoints = dataSnapshot.getValue(Integer.class);
+                                if (numPoints != null) {
+                                    topMessage.setText(message + ": " + numPoints.toString() + " Points");
+                                } else {
+                                    createDialog("Database Error, User Point Value Does Not Exist");
+                                    topMessage.setText(message);
+                                }
+                            }
+
+                            @Override
+                            public void onCancelled(DatabaseError databaseError) {
+                                createDialog("Database Error, Display Cancelled");
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                        createDialog("Database Error, Display Cancelled");
+                    }
+                });
+            } else {
+                createDialog("Database Error, User Account Does Not Exist");
+            }
+        }else{
+            db.child("users").child(userID).child("username").addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot dataSnapshot) {
-                    final String message = dataSnapshot.getValue(String.class);
-                    db.child("users").child(mAuth.getUid()).child("points").addListenerForSingleValueEvent(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(DataSnapshot dataSnapshot) {
-                            Integer numPoints = dataSnapshot.getValue(Integer.class);
-                            if(numPoints != null){
-                                topMessage.setText(message + ": " + numPoints.toString() + " Points");
-                            } else{
-                                createDialog("Database Error, User Point Value Does Not Exist");
-                                topMessage.setText(message);
-                            }
-                        }
-
-                        @Override
-                        public void onCancelled(DatabaseError databaseError) {
-                            createDialog("Database Error, Display Cancelled");
-                        }
-                    });
+                    Resources res = getResources();
+                    String message = String.format(res.getString(R.string.UploaderMessage),dataSnapshot.getValue(String.class));
+                    topMessage.setText(message);
                 }
 
                 @Override
                 public void onCancelled(DatabaseError databaseError) {
-                    createDialog("Database Error, Display Cancelled");
+
                 }
             });
-        } else{
-            createDialog("Database Error, User Account Does Not Exist");
         }
     }
 

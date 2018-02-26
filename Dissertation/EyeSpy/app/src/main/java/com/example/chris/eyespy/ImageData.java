@@ -77,6 +77,16 @@ class ImageData implements Serializable{
 
     void setIndex(int index){this.index = index;}
 
+    void destroy(){
+        this.imageURL = null;
+        this.userID = null;
+        this.correctCheckCount = 0;
+        this.index = 0;
+        this.latitude = 0.0;
+        this.longitude = 0.0;
+        this.wifiNetworks = new ArrayList<>();
+    }
+
 
 
 }
