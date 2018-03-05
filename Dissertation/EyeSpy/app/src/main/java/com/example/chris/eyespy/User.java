@@ -17,6 +17,7 @@ class User implements Serializable{
     private String email;
     private int points;
     private List completedImages;
+    private List skippedImages;
     private String username;
 
 
@@ -24,6 +25,7 @@ class User implements Serializable{
         this.email = email;
         this.points = 0;
         this.completedImages = new ArrayList<>();
+        this.skippedImages = new ArrayList<>();
         this.username = username;
 
     }
@@ -37,6 +39,8 @@ class User implements Serializable{
     }
 
     public List getCompletedImages() {return this.completedImages;}
+
+    public List getSkippedImages() {return this.skippedImages;}
 
     public String getUsername() {return this.username;}
 

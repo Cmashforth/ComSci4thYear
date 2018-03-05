@@ -72,8 +72,10 @@ public class CreateAccountActivity extends AppCompatActivity {
                             if(user != null){
                                 User newUser = new User(user.getEmail(),usernameField.getText().toString());
                                 db.child("users").child(user.getUid()).setValue(newUser);
-                                List<Integer> startUpload = new ArrayList<>(Collections.singletonList(0));
-                                db.child("users").child(user.getUid()).child("completedImages").setValue(startUpload);
+                                List<Integer> completedImages = new ArrayList<>(Collections.singletonList(0));
+                                db.child("users").child(user.getUid()).child("completedImages").setValue(completedImages);
+                                List<Integer> skippedImages = new ArrayList<>(Collections.singletonList(0));
+                                db.child("users").child(user.getUid()).child("skippedImages").setValue(skippedImages);
                                 onClick(null);
                             } else{
                                 Toast.makeText(CreateAccountActivity.this,"Authentication Error, User Account Does Not Exist ",Toast.LENGTH_SHORT).show();

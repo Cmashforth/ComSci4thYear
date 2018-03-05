@@ -28,6 +28,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.firebase.ui.storage.images.FirebaseImageLoader;
@@ -57,11 +58,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Random;
 
 import static com.google.android.gms.location.LocationServices.getFusedLocationProviderClient;
 
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener{
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     static final int REQUEST_TAKE_PHOTO = 1;
     static final int REQUEST_LOCATION = 99;
@@ -88,6 +90,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private WifiManager wifi;
     private int wifiScanCount;
 
+    private List<Integer> playerCompletedImages;
+    private List<Integer> playerSkippedImages;
+
     //Methods that override inbuilt methods
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,17 +113,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         storInst = FirebaseStorage.getInstance();
 
         currentImageData = new ImageData();
-        currentImageIndex = 1;
+        currentImageIndex = 0;
         connections = new ArrayList<>();
         wifiScanCount = 1;
 
+        playerCompletedImages = new ArrayList<>();
+        playerSkippedImages = new ArrayList<>();
+
         wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-        if(!wifi.isWifiEnabled()){
+        if (!wifi.isWifiEnabled()) {
             wifi.setWifiEnabled(true);
         }
 
-        if(ActivityCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},REQUEST_LOCATION);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_LOCATION);
         }
 
         spinner.setVisibility(View.INVISIBLE);
@@ -128,41 +136,78 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     @Override
-    public void onStart(){
+    public void onStart() {
         super.onStart();
-        if(mAuth.getCurrentUser() == null){
+        if (mAuth.getCurrentUser() == null) {
             signUserOut();
+            createDialog("No User Account available, redirecting...");
+            Intent redirectIntent = new Intent(this, LogInActivity.class);
+            startActivity(redirectIntent);
+        }
+        if (mAuth.getUid() != null) {
+            db.child("users").child(mAuth.getUid()).child("completedImages").addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    GenericTypeIndicator<List<Integer>> indexList = new GenericTypeIndicator<List<Integer>>() {
+                    };
+                    playerCompletedImages = dataSnapshot.getValue(indexList);
+                }
+
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
+                    createDialog("Database Error, Completed List Assignment Cancelled");
+                }
+            });
+
+            db.child("users").child(mAuth.getUid()).child("skippedImages").addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    GenericTypeIndicator<List<Integer>> indexList = new GenericTypeIndicator<List<Integer>>() {
+                    };
+                    playerSkippedImages = dataSnapshot.getValue(indexList);
+                }
+
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
+                    createDialog("Database Error, Complete List Assignment Cancelled");
+                }
+            });
+        } else {
+            createDialog("Authentication Error: No User Logged In");
         }
     }
-    
+
     @Override
-    public void onClick(View view){
-        if(view  == camButton){
-            try{
+    public void onClick(View view) {
+        if (view == camButton) {
+            try {
                 takePicture();
-            } catch(IOException ex){
+            } catch (IOException ex) {
                 createDialog("Camera Error, Cannot Access Camera");
             }
-        } else if(view == signOutButton){
+        } else if (view == signOutButton) {
             signUserOut();
-        } else if(view == getImageButton){
+        } else if (view == getImageButton) {
+            if(!playerSkippedImages.contains(currentImageIndex)){
+                playerSkippedImages.add(currentImageIndex);
+                uploadSkippedList();
+            }
             getImage();
-        } else if(view == checkButton){
+        } else if (view == checkButton) {
             topMessage.setText(R.string.CheckingMessage);
-            ImageData playerData = new ImageData(null,null);
+            ImageData playerData = new ImageData(null, null);
             displaySettings(false);
             getGPS(playerData);
         }
 
     }
 
-
     //Image Upload Methods
     private File createImageFile() throws IOException {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
         File storageDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
-        try{
+        try {
             File image = File.createTempFile(
                     imageFileName,
                     ".jpg",
@@ -170,7 +215,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             );
             mCurrentPhotoPath = "file:" + image.getAbsolutePath();
             return image;
-        }catch(IOException ex){
+        } catch (IOException ex) {
             ex.printStackTrace();
             createDialog("File Error, File Creation Error");
             return null;
@@ -179,76 +224,75 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void takePicture() throws IOException {
-        if(ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},1024);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1024);
         }
         Intent takePic = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        if(takePic.resolveActivity(getPackageManager())!= null){
-            try{
+        if (takePic.resolveActivity(getPackageManager()) != null) {
+            try {
                 File photoFile = createImageFile();
-                if(photoFile != null && mAuth != null){
-                    Uri outputFileUri = FileProvider.getUriForFile(MainActivity.this,BuildConfig.APPLICATION_ID + ".provider",createImageFile());
-                    takePic.putExtra(MediaStore.EXTRA_OUTPUT,outputFileUri);
-                    startActivityForResult(takePic,REQUEST_TAKE_PHOTO);
-                } else{
+                if (photoFile != null && mAuth != null) {
+                    Uri outputFileUri = FileProvider.getUriForFile(MainActivity.this, BuildConfig.APPLICATION_ID + ".provider", createImageFile());
+                    takePic.putExtra(MediaStore.EXTRA_OUTPUT, outputFileUri);
+                    startActivityForResult(takePic, REQUEST_TAKE_PHOTO);
+                } else {
                     createDialog("Image Capture Error, null values");
                 }
-            } catch(IOException ex){
+            } catch (IOException ex) {
                 createDialog("File Error, Cannot Access File");
             }
         }
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data){
-        super.onActivityResult(requestCode,resultCode,data);
-        if(requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK){
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK) {
             displaySettings(false);
             topMessage.setText(R.string.UploadProgress);
             Uri imageUri = Uri.parse(mCurrentPhotoPath);
-            StorageReference uploadRef = myStor.child("images/"+imageUri.getLastPathSegment());
+            StorageReference uploadRef = myStor.child("images/" + imageUri.getLastPathSegment());
             UploadTask uploadTask = uploadRef.putFile(imageUri);
             uploadTask.addOnFailureListener(new OnFailureListener() {
-                
+
                 @Override
                 public void onFailure(@NonNull Exception e) {
-                   createDialog("Upload Error, Failed Upload");
+                    createDialog("Upload Error, Failed Upload");
                 }
             }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                 @Override
                 public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
                     Uri newUri = taskSnapshot.getDownloadUrl();
-                    if(newUri != null){
-                        final ImageData newImageData = new ImageData(newUri.toString(),mAuth.getUid());
+                    if (newUri != null) {
+                        final ImageData newImageData = new ImageData(newUri.toString(), mAuth.getUid());
                         getGPS(newImageData);
-                    }else{
+                    } else {
                         createDialog("Upload Error, No Download URL For File");
                         displaySettings(true);
                         nameDisplay(currentImageData.getUserID());
                     }
                 }
             });
-        } else{
+        } else {
             createDialog("Camera Error, Incorrect Request Codes");
         }
 
     }
 
-    private void manageUpload(final ImageData imageData, final String mAuthID){
+    private void manageUpload(final ImageData imageData, final String mAuthID) {
         db.child("maxImageIndex").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 final Integer maxIndex = dataSnapshot.getValue(Integer.class);
                 if (maxIndex != null) {
-                    imageData.setIndex(maxIndex + 1);
                     db.child("maxImageIndex").setValue(maxIndex + 1);
                     db.child("images").child(Integer.toString(maxIndex + 1)).setValue(imageData);
                     db.child("images").child(Integer.toString(maxIndex + 1)).child("userID").setValue(mAuthID);
                     db.child("images").child(Integer.toString(maxIndex + 1)).child("latitude").setValue(imageData.getLatitude());
                     db.child("images").child(Integer.toString(maxIndex + 1)).child("longitude").setValue(imageData.getLongitude());
                     db.child("images").child(Integer.toString(maxIndex + 1)).child("wifiNetworks").setValue(imageData.getWifiNetworks());
-                    addToCompleteList(mAuthID,maxIndex + 1,true);
-                }else{
+                    addToCompleteList(mAuthID, maxIndex + 1, true);
+                } else {
                     createDialog("Database Error, Cannot Retrieve Maximum Index");
                     displaySettings(true);
                     nameDisplay(currentImageData.getUserID());
@@ -267,14 +311,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
     //Image Retrieval Methods
-    private void getImage(){
+    private void getImage() {
         displaySettings(false);
         topMessage.setText(R.string.ImageMessage);
         db.child("maxImageIndex").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 Integer maxIndex = dataSnapshot.getValue(Integer.class);
-                if(maxIndex == null){
+                if (maxIndex == null) {
                     createDialog("Database Error, No Maximum Index Exists");
                     displaySettings(true);
                     nameDisplay(currentImageData.getUserID());
@@ -292,91 +336,79 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
     }
 
-    private void imageProcessing(final int maxIndex){
-        if(mAuth.getUid() != null) {
-            db.child("users").child(mAuth.getUid()).child("completedImages").addListenerForSingleValueEvent(new ValueEventListener() {
-                @Override
-                public void onDataChange(DataSnapshot dataSnapshot) {
-                    GenericTypeIndicator<List<Integer>> indexList = new GenericTypeIndicator<List<Integer>>() {};
-                    List<Integer> completedIndexList = dataSnapshot.getValue(indexList);
-                    if (completedIndexList != null) {
-                        while (completedIndexList.contains(currentImageIndex)) {
-                            currentImageIndex = currentImageIndex + 1;
-                        }
-                        if(currentImageIndex > maxIndex){
-                            nameDisplay(null);
-                            createDialog("All images presented");
-                            currentImageIndex = 0;
-                            mImageView.setImageDrawable(null);
-                            getImageButton.setText(R.string.GetImageButtonText);
-                            return;
-                        }
-                        if(currentImageIndex == 0){
-                            currentImageIndex = 1;
-                            return;
-                        }
-                        db.child("images").child(Integer.toString(currentImageIndex)).addListenerForSingleValueEvent(new ValueEventListener() {
-                            @Override
-                            public void onDataChange(DataSnapshot dataSnapshot) {
-                                String imageURL  = dataSnapshot.child("imageURL").getValue(String.class);
-                                if (imageURL != null) {
-                                    StorageReference httpsReference = storInst.getReferenceFromUrl(imageURL);
-                                    Glide.with(MainActivity.this)
-                                            .using(new FirebaseImageLoader())
-                                            .load(httpsReference)
-                                            .into(mImageView);
-
-                                } else {
-                                   createDialog("Download Error: Download URL does not Exist");
-                                }
-
-                                Double imageLatitude = dataSnapshot.child("latitude").getValue(Double.class);
-                                if(imageLatitude != null){
-                                    currentImageData.setLatitude(imageLatitude);
-                                }
-
-                                Double imageLongitude = dataSnapshot.child("longitude").getValue(Double.class);
-                                if(imageLongitude != null){
-                                    currentImageData.setLongitude(imageLongitude);
-                                }
-
-                                GenericTypeIndicator<List<String>> list = new GenericTypeIndicator<List<String>>(){};
-                                List<String> wifiList = dataSnapshot.child("wifiNetworks").getValue(list);
-                                currentImageData.setWifiNetworks(wifiList);
-
-                                String imageUserID = dataSnapshot.child("userID").getValue(String.class);
-                                if(imageUserID != null){
-                                    currentImageData.setUserID(imageUserID);
-                                }
-
-                                getImageButton.setText(R.string.NextText);
-                                currentImageData.setIndex(currentImageIndex);
-                                currentImageIndex = currentImageIndex + 1;
-                                checkButton.setVisibility(View.VISIBLE);
-
-                            }
-
-                            @Override
-                            public void onCancelled(DatabaseError databaseError) {
-                                createDialog("Database Error, Image Retrieval Cancelled");
-                            }
-                        });
-                    } else{
-                        createDialog("Database Error: No Completed Index List");
-                    }
-                }
-
-                @Override
-                public void onCancelled(DatabaseError databaseError) {
-                    createDialog("Database Error, Image Retrieval Cancelled");
-                }
-            });
-        }else{
-            createDialog("Authentication Error: No User Logged In");
+    private void imageProcessing(int maxIndex) {
+        List<Integer> availableImages = new ArrayList<>();
+        if(playerCompletedImages.size() + playerSkippedImages.size() - 2 == maxIndex) {
+            nameDisplay(null);
+            createDialog("All images presented");
+            currentImageIndex = 0;
+            mImageView.setImageDrawable(null);
+            getImageButton.setText(R.string.GetImageButtonText);
+            playerSkippedImages.clear();
+            displaySettings(true);
+            uploadSkippedList();
+            return;
         }
+        for(int i = 1; i < maxIndex + 1; i++) {
+            if (!playerCompletedImages.contains(i) && !playerSkippedImages.contains(i)) {
+                availableImages.add(i);
+            }
+        }
+
+        Random rand = new Random();
+        int value = rand.nextInt(availableImages.size());
+        currentImageIndex = availableImages.get(value);
+        db.child("images").child(Integer.toString(currentImageIndex)).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                String imageURL = dataSnapshot.child("imageURL").getValue(String.class);
+                if (imageURL != null) {
+                    StorageReference httpsReference = storInst.getReferenceFromUrl(imageURL);
+                    Glide.with(MainActivity.this)
+                            .using(new FirebaseImageLoader())
+                            .load(httpsReference)
+                            .into(mImageView);
+
+                } else {
+                    createDialog("Download Error: Download URL does not Exist");
+                }
+
+                Double imageLatitude = dataSnapshot.child("latitude").getValue(Double.class);
+                if (imageLatitude != null) {
+                    currentImageData.setLatitude(imageLatitude);
+                }
+
+                Double imageLongitude = dataSnapshot.child("longitude").getValue(Double.class);
+                if (imageLongitude != null) {
+                    currentImageData.setLongitude(imageLongitude);
+                }
+
+                GenericTypeIndicator<List<String>> list = new GenericTypeIndicator<List<String>>() {
+                };
+                List<String> wifiList = dataSnapshot.child("wifiNetworks").getValue(list);
+                currentImageData.setWifiNetworks(wifiList);
+
+                String imageUserID = dataSnapshot.child("userID").getValue(String.class);
+                if (imageUserID != null) {
+                    currentImageData.setUserID(imageUserID);
+                }
+                getImageButton.setText(R.string.NextText);
+                checkButton.setVisibility(View.VISIBLE);
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                createDialog("Database Error, Image Retrieval Cancelled");
+            }
+        });
+
         displaySettings(true);
         nameDisplay(currentImageData.getUserID());
     }
+
+
+
 
     //Gps and Wifi Methods
     private void getGPS(final ImageData imageData){
@@ -458,17 +490,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         if(coordCheck(playerData.getLatitude(),currentImageData.getLatitude()) && coordCheck(playerData.getLongitude(),currentImageData.getLongitude())) {
             if ((wifiCount >= currentImageData.getWifiNetworks().size() / 2 || wifiCount >= playerData.getWifiNetworks().size() / 2)) {
-                addToCompleteList(mAuth.getUid(), currentImageData.getIndex(), false);
+                addToCompleteList(mAuth.getUid(), currentImageIndex, false);
                 pointsAllocation(currentImageData.getUserID(), 1);
                 pointsAllocation(mAuth.getUid(), 2);
 
-                db.child("images").child(Integer.toString(currentImageData.getIndex())).child("correctCheckCount").addListenerForSingleValueEvent(new ValueEventListener() {
+                db.child("images").child(Integer.toString(currentImageIndex)).child("correctCheckCount").addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
                         Integer count = dataSnapshot.getValue(Integer.class);
                         if (count != null) {
                             count = count + 1;
-                            db.child("images").child(Integer.toString(currentImageData.getIndex())).child("correctCheckCount").setValue(count);
+                            db.child("images").child(Integer.toString(currentImageIndex)).child("correctCheckCount").setValue(count);
                         } else {
                             createDialog("Database Error, Correct Check does not Exist");
                         }
@@ -514,24 +546,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     //Database Methods
     public void addToCompleteList(final String userID, final int imageIndex, boolean processEnd){
-        db.child("users").child(userID).child("completedImages").addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                GenericTypeIndicator<List<Integer>> indexList = new GenericTypeIndicator<List<Integer>>() {};
-                List<Integer> uploads = dataSnapshot.getValue(indexList);
-                if (uploads != null) {
-                    uploads.add(imageIndex);
-                    db.child("users").child(userID).child("completedImages").setValue(uploads);
-                } else {
-                    createDialog("Database Error: No ImageData List Exists");
-                }
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                createDialog("Database Error, Process Cancelled");
-            }
-        });
+        playerCompletedImages.add(imageIndex);
+        db.child("users").child(userID).child("completedImages").setValue(playerCompletedImages);
         if(processEnd){
             createDialog("Upload Finished");
             displaySettings(true);
@@ -558,6 +574,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
 
+    }
+
+    public void uploadSkippedList(){
+        if(mAuth.getUid() != null) {
+            db.child("users").child(mAuth.getUid()).child("skippedImages").setValue(playerSkippedImages);
+        }else{
+            createDialog("Database Error, Skipped Images not uploaded");
+        }
     }
 
     //onClick Methods
@@ -598,6 +622,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                     topMessage.setText(message + ": " + numPoints.toString() + " Points");
                                 } else {
                                     createDialog("Database Error, User Point Value Does Not Exist");
+
                                     topMessage.setText(message);
                                 }
                             }
