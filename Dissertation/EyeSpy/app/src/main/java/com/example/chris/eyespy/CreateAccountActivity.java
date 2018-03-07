@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
@@ -32,6 +33,7 @@ public class CreateAccountActivity extends AppCompatActivity {
     private EditText passwordField;
     private EditText usernameField;
     private Button createButton;
+    private Toolbar toolbar;
 
     private FirebaseAuth mAuth;
     private DatabaseReference db;
@@ -45,6 +47,8 @@ public class CreateAccountActivity extends AppCompatActivity {
         passwordField = findViewById(R.id.Password);
         usernameField = findViewById(R.id.UserName);
         createButton = findViewById(R.id.SignUpButton);
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
 
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseDatabase.getInstance().getReference();

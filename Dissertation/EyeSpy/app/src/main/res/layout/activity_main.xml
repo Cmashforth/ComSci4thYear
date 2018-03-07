@@ -3,9 +3,17 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
     tools:context="com.example.chris.eyespy.MainActivity">
 
+    <android.support.v7.widget.Toolbar
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id = "@+id/toolbar"
+        android:background="?attr/colorPrimary" />
+
     <TextView
+        android:layout_below="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="5dp"
@@ -42,17 +50,6 @@
         android:layout_below="@+id/getImage"
         android:layout_alignStart="@+id/getImage"
         android:layout_alignEnd="@+id/getImage"
-        android:textSize="12sp"/>
-
-    <Button
-        android:id="@+id/SignOutButton"
-        android:layout_height="wrap_content"
-        android:layout_width= "wrap_content"
-        android:text= "@string/SignOutButtonText"
-        android:onClick="onClick"
-        android:layout_below="@+id/button_image"
-        android:layout_alignStart="@+id/button_image"
-        android:layout_alignEnd="@+id/button_image"
         android:textSize="12sp"/>
 
     <Button

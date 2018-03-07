@@ -23,12 +23,14 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.content.Intent;
 import android.provider.MediaStore;
+import android.support.v7.widget.Toolbar;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.firebase.ui.storage.images.FirebaseImageLoader;
@@ -51,8 +53,6 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
-
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -72,9 +72,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button camButton;
     private TextView topMessage;
     private Button getImageButton;
-    private Button signOutButton;
     private Button checkButton;
     private ProgressBar spinner;
+    private Toolbar toolbar;
 
     private String mCurrentPhotoPath;
     private ImageData currentImageData;
@@ -101,11 +101,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         camButton = findViewById(R.id.button_image);
         topMessage = findViewById(R.id.topMessage);
-        signOutButton = findViewById(R.id.SignOutButton);
         getImageButton = findViewById(R.id.getImage);
         mImageView = findViewById(R.id.image);
         checkButton = findViewById(R.id.checkButton);
         spinner = findViewById(R.id.spinner);
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
 
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseDatabase.getInstance().getReference();
@@ -185,8 +186,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             } catch (IOException ex) {
                 createDialog("Camera Error, Cannot Access Camera");
             }
-        } else if (view == signOutButton) {
-            signUserOut();
         } else if (view == getImageButton) {
             if(!playerSkippedImages.contains(currentImageIndex)){
                 playerSkippedImages.add(currentImageIndex);
@@ -200,6 +199,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             getGPS(playerData);
         }
 
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu){
+        getMenuInflater().inflate(R.menu.contents,menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item){
+        switch (item.getItemId()){
+            case R.id.signOut:
+                signUserOut();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     //Image Upload Methods
@@ -391,24 +407,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 String imageUserID = dataSnapshot.child("userID").getValue(String.class);
                 if (imageUserID != null) {
                     currentImageData.setUserID(imageUserID);
+                    nameDisplay(currentImageData.getUserID());
+                    displaySettings(true);
                 }
                 getImageButton.setText(R.string.NextText);
                 checkButton.setVisibility(View.VISIBLE);
-
             }
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
                 createDialog("Database Error, Image Retrieval Cancelled");
+                displaySettings(true);
             }
         });
 
-        displaySettings(true);
-        nameDisplay(currentImageData.getUserID());
     }
-
-
-
 
     //Gps and Wifi Methods
     private void getGPS(final ImageData imageData){
@@ -596,7 +609,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         camButton.setEnabled(setting);
         getImageButton.setEnabled(setting);
         checkButton.setEnabled(setting);
-        signOutButton.setEnabled(setting);
 
         if(!setting){
             mImageView.setVisibility(View.INVISIBLE);
@@ -650,7 +662,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     String message = String.format(res.getString(R.string.UploaderMessage),dataSnapshot.getValue(String.class));
                     topMessage.setText(message);
                 }
-
                 @Override
                 public void onCancelled(DatabaseError databaseError) {
 
