@@ -31,7 +31,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
+
 
 import com.bumptech.glide.Glide;
 import com.firebase.ui.storage.images.FirebaseImageLoader;
@@ -44,7 +44,6 @@ import com.google.android.gms.location.SettingsClient;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -58,11 +57,9 @@ import com.google.firebase.storage.UploadTask;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -705,33 +702,52 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onDataChange(DataSnapshot dataSnapshot) {
                 GenericTypeIndicator<Map<String,Map<String,Object>>> map = new GenericTypeIndicator<Map<String,Map<String,Object>>>() {};
                 Map<String,Map<String,Object>> hp = dataSnapshot.getValue(map);
-                Map<String,Long> pointsMap = new HashMap<String, Long>() {};
-                for(String key : hp.keySet()){
-                    Map<String,Object> entry = hp.get(key);
-                    Long value = (Long) entry.get("points");
-                    pointsMap.put(key,value);
-                }
-                Set<Map.Entry<String,Long>> entries = pointsMap.entrySet();
-                List<Map.Entry<String,Long>> entriesList = new LinkedList<>(entries);
-                Collections.sort(entriesList, new Comparator<Map.Entry<String, Long>>() {
-                    @Override
-                    public int compare(Map.Entry<String, Long> o1, Map.Entry<String, Long> o2) {
-                        return o1.getValue().compareTo(o2.getValue());
+                if(hp != null){
+                    Map<String,Long> pointsMap = new HashMap<String, Long>() {};
+
+                    for(String key : hp.keySet()){
+                        Map<String,Object> entry = hp.get(key);
+                        Long value = (Long) entry.get("points");
+                        pointsMap.put(key,value);
                     }
-                });
-                Map<String,Long> sortedPointsMap = new LinkedHashMap<>();
-                ArrayList<String> userIDList = new ArrayList<>();
-                for(Map.Entry<String,Long> entry : entriesList){
-                    sortedPointsMap.put(entry.getKey(),entry.getValue());
-                    userIDList.add(entry.getKey());
+                    Set<Map.Entry<String,Long>> entries = pointsMap.entrySet();
+                    List<Map.Entry<String,Long>> entriesList = new LinkedList<>(entries);
+                    Collections.sort(entriesList, new Comparator<Map.Entry<String, Long>>() {
+                        @Override
+                        public int compare(Map.Entry<String, Long> o1, Map.Entry<String, Long> o2) {
+                            return o1.getValue().compareTo(o2.getValue());
+                        }
+                    });
+                    Map<String,Long> sortedPointsMap = new LinkedHashMap<>();
+                    ArrayList<String> userIDList = new ArrayList<>();
+                    for(Map.Entry<String,Long> entry : entriesList){
+                        sortedPointsMap.put(entry.getKey(),entry.getValue());
+                        userIDList.add(entry.getKey());
+                    }
+                    int userListPosition = userIDList.indexOf(mAuth.getUid());
+                    String message = "You are in position " + (userIDList.size() - userListPosition) + " out of " + userIDList.size();
+                    if((userIDList.size() - userListPosition) == 1){
+                        message = message + "\nThere are no players ahead of you";
+                    }else if((sortedPointsMap.get(userIDList.get(userListPosition + 1)) - sortedPointsMap.get(userIDList.get(userListPosition))) == 0){
+                        message = message + "\nYou have the same amount of points as the player above you";
+                    }else{
+                        message = message + "\nThe player above you is ahead by " + (sortedPointsMap.get(userIDList.get(userListPosition + 1)) - sortedPointsMap.get(userIDList.get(userListPosition))) + " points";
+                    }
+                    if((userIDList.size() - userListPosition) == userIDList.size()){
+                        message = message + "\nThere are no players below you";
+                    }else if((sortedPointsMap.get(userIDList.get(userListPosition)) - sortedPointsMap.get(userIDList.get(userListPosition - 1))) == 0){
+                        message = message + "\nYou have the same number of points as the player below you";
+                    } else{
+                        message = message + "\nThe player below you is behind by " + (sortedPointsMap.get(userIDList.get(userListPosition)) - sortedPointsMap.get(userIDList.get(userListPosition - 1)))  + " points";
+                    }
+                    createDialog(message);
+                }else{
+                    createDialog("Cannot produce Leaderboard");
                 }
-                int userListPosition = userIDList.indexOf(mAuth.getUid());
-                String message = "You are in position " + (userIDList.size() - userListPosition) + " out of " + userIDList.size();
-                message = message + "\nThe player above you is ahead by " + (sortedPointsMap.get(userIDList.get(userListPosition + 1)) - sortedPointsMap.get(userIDList.get(userListPosition))) + " points";
-                createDialog(message);
             }
             @Override
             public void onCancelled(DatabaseError databaseError) {
+                createDialog("Cannot produce Leaderboard");
             }
         });
     }
