@@ -31,6 +31,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.firebase.ui.storage.images.FirebaseImageLoader;
@@ -43,6 +44,7 @@ import com.google.android.gms.location.SettingsClient;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -56,9 +58,18 @@ import com.google.firebase.storage.UploadTask;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.Dictionary;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 import static com.google.android.gms.location.LocationServices.getFusedLocationProviderClient;
 
@@ -212,6 +223,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         switch (item.getItemId()){
             case R.id.signOut:
                 signUserOut();
+                return true;
+            case R.id.LeaderBoard:
+                generateLeaderBoard();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -682,5 +696,43 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         AlertDialog alertDialog = alertDialogBuilder.create();
         alertDialog.show();
+    }
+
+    private void generateLeaderBoard(){
+        DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users");
+        userRef.orderByChild("points").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                GenericTypeIndicator<Map<String,Map<String,Object>>> map = new GenericTypeIndicator<Map<String,Map<String,Object>>>() {};
+                Map<String,Map<String,Object>> hp = dataSnapshot.getValue(map);
+                Map<String,Long> pointsMap = new HashMap<String, Long>() {};
+                for(String key : hp.keySet()){
+                    Map<String,Object> entry = hp.get(key);
+                    Long value = (Long) entry.get("points");
+                    pointsMap.put(key,value);
+                }
+                Set<Map.Entry<String,Long>> entries = pointsMap.entrySet();
+                List<Map.Entry<String,Long>> entriesList = new LinkedList<>(entries);
+                Collections.sort(entriesList, new Comparator<Map.Entry<String, Long>>() {
+                    @Override
+                    public int compare(Map.Entry<String, Long> o1, Map.Entry<String, Long> o2) {
+                        return o1.getValue().compareTo(o2.getValue());
+                    }
+                });
+                Map<String,Long> sortedPointsMap = new LinkedHashMap<>();
+                ArrayList<String> userIDList = new ArrayList<>();
+                for(Map.Entry<String,Long> entry : entriesList){
+                    sortedPointsMap.put(entry.getKey(),entry.getValue());
+                    userIDList.add(entry.getKey());
+                }
+                int userListPosition = userIDList.indexOf(mAuth.getUid());
+                String message = "You are in position " + (userIDList.size() - userListPosition) + " out of " + userIDList.size();
+                message = message + "\nThe player above you is ahead by " + (sortedPointsMap.get(userIDList.get(userListPosition + 1)) - sortedPointsMap.get(userIDList.get(userListPosition))) + " points";
+                createDialog(message);
+            }
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
     }
 }

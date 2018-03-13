@@ -21,17 +21,11 @@ class User implements Serializable{
     private String username;
 
 
-    User(String email,String username){
-        this.email = email;
+    User(String username){
         this.points = 0;
         this.completedImages = new ArrayList<>();
         this.skippedImages = new ArrayList<>();
         this.username = username;
-
-    }
-
-    public String getEmail(){
-        return this.email;
     }
 
     public int getPoints(){
