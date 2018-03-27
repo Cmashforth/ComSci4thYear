@@ -19,19 +19,21 @@ import com.google.firebase.auth.FirebaseAuth;
 
 public class LogInActivity extends AppCompatActivity {
 
+    //UI Elements
     private EditText emailField;
     private EditText passwordField;
     private Button loginButton;
     private Button signupButton;
     private Toolbar toolbar;
 
+    //Firebase Authentication variable
     private FirebaseAuth mAuth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
-
+        //Registers UI elements
         emailField = findViewById(R.id.Email);
         passwordField = findViewById(R.id.Password);
         loginButton = findViewById(R.id.LogInButton);
@@ -42,6 +44,7 @@ public class LogInActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
     }
 
+    //If a player is logged in on start, then the application redirects to the main screen
     @Override
     public void onStart(){
         super.onStart();
@@ -50,6 +53,7 @@ public class LogInActivity extends AppCompatActivity {
         }
     }
 
+    //Performs a login via Firebase Authenication, redirects if successful
     private void signIn(String email, String password){
         if(!validateForm()){
             return;
@@ -68,6 +72,7 @@ public class LogInActivity extends AppCompatActivity {
                 });
     }
 
+    //Checks that the correct fields have been filled in
     private boolean validateForm(){
         boolean valid = true;
 
@@ -91,7 +96,9 @@ public class LogInActivity extends AppCompatActivity {
 
     }
 
+    //Calls the methods following the tap of a button
     public void onClick(View v){
+        //Sends the player to the create account page
         if(v == signupButton){
             Intent changePageIntent = new Intent(this,CreateAccountActivity.class);
             startActivity(changePageIntent);

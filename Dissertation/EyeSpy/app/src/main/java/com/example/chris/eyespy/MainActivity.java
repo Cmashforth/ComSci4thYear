@@ -33,6 +33,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 
+
 import com.bumptech.glide.Glide;
 import com.firebase.ui.storage.images.FirebaseImageLoader;
 import com.google.android.gms.location.LocationCallback;
@@ -76,6 +77,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     static final int REQUEST_TAKE_PHOTO = 1;
     static final int REQUEST_LOCATION = 99;
 
+    //Objects that represent UI elements
     private ImageView mImageView;
     private Button camButton;
     private TextView topMessage;
@@ -84,29 +86,34 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private ProgressBar spinner;
     private Toolbar toolbar;
 
+    //Global variables used in various methods
     private String mCurrentPhotoPath;
     private ImageData currentImageData;
     private int currentImageIndex;
     private ArrayList<String> connections;
 
+    //Firebase variables
     private DatabaseReference db;
     private StorageReference myStor;
     private FirebaseStorage storInst;
     private FirebaseAuth mAuth;
 
+    //Variables used within location gathering
     private Location currentLocation;
     private WifiManager wifi;
     private int wifiScanCount;
 
+    //Lists for image retrieval
     private List<Integer> playerCompletedImages;
     private List<Integer> playerSkippedImages;
 
-    //Methods that override inbuilt methods
+    //Called upon creation of the activity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
+        //Register UI elements
+        setContentView(R.layout.activity_main);
         camButton = findViewById(R.id.button_image);
         topMessage = findViewById(R.id.topMessage);
         getImageButton = findViewById(R.id.getImage);
@@ -116,37 +123,43 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        //Register Firebase variables
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseDatabase.getInstance().getReference();
         myStor = FirebaseStorage.getInstance().getReference();
         storInst = FirebaseStorage.getInstance();
 
+        //Initalise global variables
         currentImageData = new ImageData();
         currentImageIndex = 0;
         connections = new ArrayList<>();
         wifiScanCount = 1;
-
         playerCompletedImages = new ArrayList<>();
         playerSkippedImages = new ArrayList<>();
 
+        //Turn on devices WiFi if not turned on
         wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         if (!wifi.isWifiEnabled()) {
             wifi.setWifiEnabled(true);
         }
 
+        //Requests Permission for the application to track location
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_LOCATION);
         }
 
+        //Set the spinner to be invisible, display the players name on the screen, start requesting location
         spinner.setVisibility(View.INVISIBLE);
         nameDisplay(currentImageData.getUserID());
         createLocationRequest();
 
     }
 
+    //Call upon startup of activity
     @Override
     public void onStart() {
         super.onStart();
+        //If no account information can be found, send user back to login screen
         if (mAuth.getCurrentUser() == null) {
             signUserOut();
             createDialog("No User Account available, redirecting...");
@@ -154,6 +167,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             startActivity(redirectIntent);
         }
         if (mAuth.getUid() != null) {
+            //Retrieve the player's completedImages list from the database
             db.child("users").child(mAuth.getUid()).child("completedImages").addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot dataSnapshot) {
@@ -164,10 +178,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 @Override
                 public void onCancelled(DatabaseError databaseError) {
-                    createDialog("Database Error, Completed List Assignment Cancelled");
+                    createDialog("Database Error, Completed List Assignment Cancelled. Restart Application and Contact Moderator if the problem persists");
                 }
             });
 
+            //Retrieve the players skippedImages list from the database
             db.child("users").child(mAuth.getUid()).child("skippedImages").addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot dataSnapshot) {
@@ -178,28 +193,34 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 @Override
                 public void onCancelled(DatabaseError databaseError) {
-                    createDialog("Database Error, Complete List Assignment Cancelled");
+                    createDialog("Database Error, Skipped List Assignment Cancelled. Restart Application and Contact Moderator if the problem persists");
                 }
             });
         } else {
-            createDialog("Authentication Error: No User Logged In");
+            createDialog("No User Account available, redirecting...");
+            Intent redirectIntent = new Intent(this, LogInActivity.class);
+            startActivity(redirectIntent);
         }
     }
 
+    //Methods that run following the tap of a button
     @Override
     public void onClick(View view) {
+        //Press 'submit Image' button, open camera
         if (view == camButton) {
             try {
                 takePicture();
             } catch (IOException ex) {
                 createDialog("Camera Error, Cannot Access Camera");
             }
+            //Press 'Next Image', retrieve image. Add current images index to skippedList if one is on screen
         } else if (view == getImageButton) {
             if(!playerSkippedImages.contains(currentImageIndex)){
                 playerSkippedImages.add(currentImageIndex);
                 uploadSkippedList();
             }
             getImage();
+            //Press 'Verify Image', change topMessage, create new ImageData object and run method to assign location data
         } else if (view == checkButton) {
             topMessage.setText(R.string.CheckingMessage);
             ImageData playerData = new ImageData(null, null);
@@ -209,12 +230,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
+    //Generate options Menu
     @Override
     public boolean onCreateOptionsMenu(Menu menu){
         getMenuInflater().inflate(R.menu.contents,menu);
         return super.onCreateOptionsMenu(menu);
     }
 
+    //Assigns the correct methods for options selected in the options menu
     @Override
     public boolean onOptionsItemSelected(MenuItem item){
         switch (item.getItemId()){
@@ -229,8 +252,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    //Image Upload Methods
+    //Creates a new temporary image file
     private File createImageFile() throws IOException {
+        //Generate file name and generate new file within public storage directory
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
         File storageDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
@@ -244,16 +268,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return image;
         } catch (IOException ex) {
             ex.printStackTrace();
-            createDialog("File Error, File Creation Error");
+            createDialog("File Creation Error");
             return null;
         }
 
     }
 
+    //Method used to capture an image
     private void takePicture() throws IOException {
+        //Gets permission for writing to external storage
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1024);
         }
+        //Creates intent for opening camera, executes and waits for activity result
         Intent takePic = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (takePic.resolveActivity(getPackageManager()) != null) {
             try {
@@ -263,7 +290,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     takePic.putExtra(MediaStore.EXTRA_OUTPUT, outputFileUri);
                     startActivityForResult(takePic, REQUEST_TAKE_PHOTO);
                 } else {
-                    createDialog("Image Capture Error, null values");
+                    createDialog("Image Capture Error");
                 }
             } catch (IOException ex) {
                 createDialog("File Error, Cannot Access File");
@@ -271,12 +298,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    //Method for when an image is successfully captured
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        //On successful capture, change display settings to generate spinner
         if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK) {
             displaySettings(false);
             topMessage.setText(R.string.UploadProgress);
+            //Upload image to Firebase Cloud Storage
             Uri imageUri = Uri.parse(mCurrentPhotoPath);
             StorageReference uploadRef = myStor.child("images/" + imageUri.getLastPathSegment());
             UploadTask uploadTask = uploadRef.putFile(imageUri);
@@ -289,6 +319,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                 @Override
                 public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                    //On success, create new ImageData object and start to assign data
                     Uri newUri = taskSnapshot.getDownloadUrl();
                     if (newUri != null) {
                         final ImageData newImageData = new ImageData(newUri.toString(), mAuth.getUid());
@@ -306,7 +337,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
+    //Method for uploading image data to Database
     private void manageUpload(final ImageData imageData, final String mAuthID) {
+        //Retreieve the value of maxIndex from the database, upload image with root maxIndex + 1
         db.child("maxImageIndex").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
@@ -318,6 +351,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     db.child("images").child(Integer.toString(maxIndex + 1)).child("latitude").setValue(imageData.getLatitude());
                     db.child("images").child(Integer.toString(maxIndex + 1)).child("longitude").setValue(imageData.getLongitude());
                     db.child("images").child(Integer.toString(maxIndex + 1)).child("wifiNetworks").setValue(imageData.getWifiNetworks());
+                    //On completion, add to players list of completed images
                     addToCompleteList(mAuthID, maxIndex + 1, true);
                 } else {
                     createDialog("Database Error, Cannot Retrieve Maximum Index");
@@ -337,10 +371,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
 
-    //Image Retrieval Methods
+    //Method used to retrieve an image
     private void getImage() {
         displaySettings(false);
         topMessage.setText(R.string.ImageMessage);
+        //Retrieve database value of maxIndex and pass to imageProcessing()
         db.child("maxImageIndex").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
@@ -363,8 +398,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
     }
 
+    //Image selection and displaying
     private void imageProcessing(int maxIndex) {
         List<Integer> availableImages = new ArrayList<>();
+        //If all indexes are within either the skippedList or completedList. Reset skippedList to empty
         if(playerCompletedImages.size() + playerSkippedImages.size() - 2 == maxIndex) {
             nameDisplay(null);
             createDialog("All images presented");
@@ -376,15 +413,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             uploadSkippedList();
             return;
         }
+        //Generate a list of the indexes of images that do not appear within the completedList or skippedList
         for(int i = 1; i < maxIndex + 1; i++) {
             if (!playerCompletedImages.contains(i) && !playerSkippedImages.contains(i)) {
                 availableImages.add(i);
             }
         }
-
+        //Generate a random index for the position of the image in availableImages list
         Random rand = new Random();
         int value = rand.nextInt(availableImages.size());
         currentImageIndex = availableImages.get(value);
+        //Retrieve image from Cloud Storage and display using Glide
         db.child("images").child(Integer.toString(currentImageIndex)).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
@@ -399,7 +438,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 } else {
                     createDialog("Download Error: Download URL does not Exist");
                 }
-
+                //Retrieve imageData for the image from the database and assign to currentImageData
                 Double imageLatitude = dataSnapshot.child("latitude").getValue(Double.class);
                 if (imageLatitude != null) {
                     currentImageData.setLatitude(imageLatitude);
@@ -434,17 +473,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
-    //Gps and Wifi Methods
+    //Set ImageData's GPS coordinates to be those of the current location of the device
     private void getGPS(final ImageData imageData){
         imageData.setLatitude(currentLocation.getLatitude());
         imageData.setLongitude(currentLocation.getLongitude());
         scanWifiNetworks(imageData);
     }
 
+    //Request location every 0.5-1 seconds, updating currentLocation when coordinates are successfully received
     private void createLocationRequest(){
         LocationRequest mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(2000);
-        mLocationRequest.setFastestInterval(1000);
+        mLocationRequest.setInterval(1000);
+        mLocationRequest.setFastestInterval(500);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder();
@@ -466,6 +506,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
+    //Method for WiFi network scans
     private void scanWifiNetworks(final ImageData imageData){
         if(wifi.getWifiState() == WifiManager.WIFI_STATE_ENABLED){
             connections.clear();
@@ -474,6 +515,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             registerReceiver(new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
+                    //Following a successful scan, add SSID and BSSID pairs to current imageData object
                     List<ScanResult> results = wifi.getScanResults();
                     unregisterReceiver(this);
                     for(int i = 0; i < results.size(); i++){
@@ -492,12 +534,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
 
-    //Check Method
+    //Check Location of player when verifying image
     public void checkData(ImageData playerData){
         int wifiCount = 0;
+        //If the player has no WiFi network data, generate new data
         if(playerData.getWifiNetworks() == null){
             getGPS(playerData);
         }
+        //Create a statistic for the number of matches between the player and images's network list
         if(currentImageData.getWifiNetworks().size() > playerData.getWifiNetworks().size()){
             for(int i = 0; i < playerData.getWifiNetworks().size(); i++){
                 if(currentImageData.getWifiNetworks().contains(playerData.getWifiNetworks().get(i))){
@@ -512,12 +556,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
 
+        //Check GPS coordinates and Network Size conditions
         if(coordCheck(playerData.getLatitude(),currentImageData.getLatitude()) && coordCheck(playerData.getLongitude(),currentImageData.getLongitude())) {
             if ((wifiCount >= currentImageData.getWifiNetworks().size() / 2 || wifiCount >= playerData.getWifiNetworks().size() / 2)) {
+                //On success, add image index to players completeList and allocate points to submitter and verifier
                 addToCompleteList(mAuth.getUid(), currentImageIndex, false);
                 pointsAllocation(currentImageData.getUserID(), 1);
                 pointsAllocation(mAuth.getUid(), 2);
-
+                //Update Image's correct verification count
                 db.child("images").child(Integer.toString(currentImageIndex)).child("correctCheckCount").addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
@@ -540,10 +586,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 wifiScanCount = 1;
                 getImage();
             } else {
+                //If check fails, run method again, up to 2 times
                 if (wifiScanCount < 3) {
                     wifiScanCount++;
                     getGPS(playerData);
                 } else {
+                    //If extra scans also fail check, player is not in the create location due to wifiNetworks
                     wifiScanCount = 1;
                     createDialog("Incorrect, Not Enough Matching Wifi Addresses. Location cannot be Verified");
                     displaySettings(true);
@@ -551,12 +599,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
             }
         }else{
+            //For the GPS coordinates failing to pass the check
             createDialog("Incorrect, More than 22m away from Location of Picture");
             displaySettings(true);
             nameDisplay(currentImageData.getUserID());
         }
     }
 
+    //Tests whether a player is within 22m of an image's registered location
     private boolean coordCheck(double playerCoord, double imageCoord){
         if( (playerCoord > 0.0 && imageCoord > 0.0) || (playerCoord < 0.0 && imageCoord < 0.0) ){
             double diff = playerCoord*1000 - imageCoord*1000;
@@ -568,7 +618,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
 
-    //Database Methods
+    //Adds image's index to players completeList, both locally and on the database
     public void addToCompleteList(final String userID, final int imageIndex, boolean processEnd){
         playerCompletedImages.add(imageIndex);
         db.child("users").child(userID).child("completedImages").setValue(playerCompletedImages);
@@ -579,6 +629,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    //Updates points values on the database for the respective player and value
     public void pointsAllocation(final String playerID,final int value){
         db.child("users").child(playerID).child("points").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -600,6 +651,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
+    //Updates the player's skippedList on the database
     public void uploadSkippedList(){
         if(mAuth.getUid() != null) {
             db.child("users").child(mAuth.getUid()).child("skippedImages").setValue(playerSkippedImages);
@@ -608,14 +660,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    //onClick Methods
+    //Signs a player out, taking them back to the Login Screen
     private void signUserOut(){
         mAuth.signOut();
         Intent exitIntent = new Intent(this,LogInActivity.class);
         startActivity(exitIntent);
     }
 
-    //Display methods
+    //Disables buttons and enables the spinner or vice versa, depending on the boolean setting
     private void displaySettings(boolean setting){
         camButton.setEnabled(setting);
         getImageButton.setEnabled(setting);
@@ -630,9 +682,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    //Display method for the message at the top of the main screen
     private void nameDisplay(String userID){
         if(userID == null) {
             if (mAuth.getUid() != null) {
+                //If no image is currently displayed on screen, then set message to be the players username and points value
                 db.child("users").child(mAuth.getUid()).child("username").addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
@@ -666,6 +720,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 createDialog("Database Error, User Account Does Not Exist");
             }
         }else{
+            //If an image is being displayed, then set message to show the username of the uploader of the image
             db.child("users").child(userID).child("username").addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot dataSnapshot) {
@@ -681,6 +736,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    //Create a popup dialog which displays 'message'
     private void createDialog(String message){
         AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
         alertDialogBuilder.setMessage(message);
@@ -695,13 +751,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         alertDialog.show();
     }
 
+    //Generates Leaderboard
     private void generateLeaderBoard(){
+        //Retrieve list of all players from database
         DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users");
         userRef.orderByChild("points").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 GenericTypeIndicator<Map<String,Map<String,Object>>> map = new GenericTypeIndicator<Map<String,Map<String,Object>>>() {};
                 Map<String,Map<String,Object>> hp = dataSnapshot.getValue(map);
+                //Generate a Map of PlayerID and points pairs. Ordered by points value
                 if(hp != null){
                     Map<String,Long> pointsMap = new HashMap<String, Long>() {};
 
@@ -724,8 +783,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         sortedPointsMap.put(entry.getKey(),entry.getValue());
                         userIDList.add(entry.getKey());
                     }
+                    //Find the position of the player in the map and generate the leaderboard depending on ppints values
                     int userListPosition = userIDList.indexOf(mAuth.getUid());
-                    String message = "You are in position " + (userIDList.size() - userListPosition) + " out of " + userIDList.size();
+                    String message = "You have " + sortedPointsMap.get(userIDList.get(userListPosition)) + " points";
+                    //Generate position of player overall
+                    message = message + "\nYou are in position " + (userIDList.size() - userListPosition) + " out of " + userIDList.size();
+                    //Message depends on if player is top, has equal points as the player above them or otherwise
                     if((userIDList.size() - userListPosition) == 1){
                         message = message + "\nThere are no players ahead of you";
                     }else if((sortedPointsMap.get(userIDList.get(userListPosition + 1)) - sortedPointsMap.get(userIDList.get(userListPosition))) == 0){
@@ -733,6 +796,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }else{
                         message = message + "\nThe player above you is ahead by " + (sortedPointsMap.get(userIDList.get(userListPosition + 1)) - sortedPointsMap.get(userIDList.get(userListPosition))) + " points";
                     }
+                    //Likewise for players below.
                     if((userIDList.size() - userListPosition) == userIDList.size()){
                         message = message + "\nThere are no players below you";
                     }else if((sortedPointsMap.get(userIDList.get(userListPosition)) - sortedPointsMap.get(userIDList.get(userListPosition - 1))) == 0){
@@ -740,6 +804,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     } else{
                         message = message + "\nThe player below you is behind by " + (sortedPointsMap.get(userIDList.get(userListPosition)) - sortedPointsMap.get(userIDList.get(userListPosition - 1)))  + " points";
                     }
+                    //Display leaderboard to player
                     createDialog(message);
                 }else{
                     createDialog("Cannot produce Leaderboard");

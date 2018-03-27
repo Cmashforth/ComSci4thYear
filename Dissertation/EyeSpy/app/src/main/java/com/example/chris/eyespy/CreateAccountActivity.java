@@ -29,12 +29,14 @@ import java.util.List;
 
 public class CreateAccountActivity extends AppCompatActivity {
 
+    //UI elements
     private EditText emailField;
     private EditText passwordField;
     private EditText usernameField;
     private Button createButton;
     private Toolbar toolbar;
 
+    //Firebase Authentication and Database variables
     private FirebaseAuth mAuth;
     private DatabaseReference db;
 
@@ -42,7 +44,7 @@ public class CreateAccountActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_createaccount);
-
+        //Regsiters UI elements
         emailField = findViewById(R.id.Email);
         passwordField = findViewById(R.id.Password);
         usernameField = findViewById(R.id.UserName);
@@ -54,6 +56,7 @@ public class CreateAccountActivity extends AppCompatActivity {
         db = FirebaseDatabase.getInstance().getReference();
     }
 
+    //If player is logged in, then redirects
     @Override
     public void onStart(){
         super.onStart();
@@ -62,6 +65,7 @@ public class CreateAccountActivity extends AppCompatActivity {
         }
     }
 
+    //On account creation, uploads details to both Authentication and Aatabase
     private void createAccount(String email,String password){
         if(!validateForm()){
             return;
@@ -93,6 +97,7 @@ public class CreateAccountActivity extends AppCompatActivity {
                 });
     }
 
+    //Checks that the correct fields have been filled in
     private boolean validateForm(){
         boolean valid = true;
 

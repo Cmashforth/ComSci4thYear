@@ -10,11 +10,10 @@ import java.util.List;
 /**
  * Created by Chris on 23/11/2017.
  */
-
+//Class representing the data a player has associated with it
 @IgnoreExtraProperties
 class User implements Serializable{
 
-    private String email;
     private int points;
     private List completedImages;
     private List skippedImages;

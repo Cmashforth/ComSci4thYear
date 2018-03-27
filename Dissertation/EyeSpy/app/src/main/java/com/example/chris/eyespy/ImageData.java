@@ -10,6 +10,7 @@ import java.util.List;
  * Created by Chris on 23/11/2017.
  */
 
+//Class representing the data that an Image has associated with it
 @IgnoreExtraProperties
 class ImageData implements Serializable{
 
